@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="140" height="24" viewBox="0 0 140 24">
+  <g>
+    <g transform="translate(0, 0)">
+      <path d="M0 18 L12 12 L24 18 L12 24 L0 18" fill="#2E7D32"/>
+      <path d="M0 12 L12 6 L24 12 L12 18 L0 12" fill="#A9A9A9"/>
+      <path d="M0 6 L12 0 L24 6 L12 12 L0 6" fill="#2E7D32"/>
+    </g>
+    <text x="32" y="18" font-family="Arial" font-size="16" font-weight="bold">STACKS</text>
+    <text x="92" y="18" font-family="Arial" font-size="16" font-weight="bold" fill="#2E7D32">DATA</text>
+  </g>
+</svg>

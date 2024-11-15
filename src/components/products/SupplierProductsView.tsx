@@ -1,7 +1,7 @@
 import {
   Box,
   Flex,
-  Button,
+  IconButton,
   Heading,
   useDisclosure,
   Text,
@@ -20,12 +20,14 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
-  IconButton,
   HStack,
   Tag,
+  Skeleton,
+  Tooltip,
+  useColorModeValue
 } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
-import { MoreVertical, Send, Trash2 } from 'lucide-react';
+import { Plus, MoreVertical, Send, Trash2 } from 'lucide-react';
 import type { ProductSheet } from '../../types/productSheet';
 import type { Supplier } from '../../types/supplier';
 import type { QuestionTag } from '../../types/question';
@@ -42,6 +44,11 @@ export const SupplierProductsView = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const toast = useToast();
+
+  const tableBg = useColorModeValue('white', 'gray.800');
+  const headerBg = useColorModeValue('gray.50', 'gray.700');
+  const borderColor = useColorModeValue('gray.100', 'gray.600');
+  const hoverBg = useColorModeValue('gray.50', 'gray.700');
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -76,15 +83,11 @@ export const SupplierProductsView = () => {
 
   const getSupplierName = async (supplierId: string): Promise<string> => {
     try {
-      // First check the local suppliers array
       const localSupplier = suppliers.find(s => s.id === supplierId);
       if (localSupplier) {
         return localSupplier.name;
       }
-
-      // If not found locally, fetch from Firestore
       const supplier = await getSupplier(supplierId);
-      // Update the local suppliers array
       setSuppliers(prev => [...prev, supplier]);
       return supplier.name;
     } catch (error) {
@@ -148,31 +151,47 @@ export const SupplierProductsView = () => {
   };
 
   return (
-    <Box p={8}>
-      <Flex justify="space-between" align="center" mb={8}>
-        <Heading size="lg">Product Sheets</Heading>
-        <Button onClick={onOpen}>Create New Sheet</Button>
+    <Box p={6}>
+      <Flex justify="space-between" align="center" mb={6}>
+        <Heading size="md" fontWeight="medium">Product Sheets</Heading>
+        <Tooltip label="Create New Sheet" hasArrow>
+          <IconButton
+            aria-label="Create new sheet"
+            icon={<Plus size={18} />}
+            onClick={onOpen}
+            colorScheme="green"
+            variant="ghost"
+            size="sm"
+          />
+        </Tooltip>
       </Flex>
 
       {error && (
-        <Alert status="error" mb={6}>
+        <Alert status="error" mb={6} borderRadius="md">
           <AlertIcon />
           {error}
         </Alert>
       )}
 
-      <Box bg="white" borderRadius="lg" shadow="sm" overflow="hidden">
+      <Box 
+        bg={tableBg} 
+        borderRadius="xl" 
+        borderWidth="1px"
+        borderColor={borderColor}
+        overflow="hidden"
+        boxShadow="sm"
+      >
         <TableContainer>
-          <Table variant="simple">
-            <Thead bg="gray.50">
+          <Table variant="simple" size="sm">
+            <Thead bg={headerBg}>
               <Tr>
-                <Th>Sheet Name</Th>
-                <Th>Supplier</Th>
-                <Th>Tags</Th>
-                <Th>Status</Th>
-                <Th>Due Date</Th>
-                <Th>Created</Th>
-                <Th width="100px">Actions</Th>
+                <Th py={4} fontSize="xs" textTransform="none">Sheet Name</Th>
+                <Th py={4} fontSize="xs" textTransform="none">Supplier</Th>
+                <Th py={4} fontSize="xs" textTransform="none">Tags</Th>
+                <Th py={4} fontSize="xs" textTransform="none">Status</Th>
+                <Th py={4} fontSize="xs" textTransform="none">Due Date</Th>
+                <Th py={4} fontSize="xs" textTransform="none">Created</Th>
+                <Th width="50px"></Th>
               </Tr>
             </Thead>
             <Tbody>
@@ -181,7 +200,7 @@ export const SupplierProductsView = () => {
                   <Tr key={index}>
                     {Array.from({ length: 7 }).map((_, cellIndex) => (
                       <Td key={cellIndex}>
-                        <Text>Loading...</Text>
+                        <Skeleton height="16px" />
                       </Td>
                     ))}
                   </Tr>
@@ -189,18 +208,18 @@ export const SupplierProductsView = () => {
               ) : sheets.length === 0 ? (
                 <Tr>
                   <Td colSpan={7} textAlign="center" py={8}>
-                    No product sheets found
+                    <Text color="gray.500" fontSize="sm">No product sheets found</Text>
                   </Td>
                 </Tr>
               ) : (
                 sheets.map((sheet) => (
-                  <Tr key={sheet.id}>
-                    <Td fontWeight="medium">{sheet.name}</Td>
-                    <Td>
+                  <Tr key={sheet.id} _hover={{ bg: hoverBg }}>
+                    <Td py={3} fontSize="sm" fontWeight="medium">{sheet.name}</Td>
+                    <Td py={3}>
                       <SupplierName supplierId={sheet.supplierId} getSupplierName={getSupplierName} />
                     </Td>
-                    <Td>
-                      <HStack spacing={2} flexWrap="wrap">
+                    <Td py={3}>
+                      <HStack spacing={1} flexWrap="wrap">
                         {sheet.selectedTags.map(tagId => {
                           const tag = tags.find(t => t.id === tagId);
                           return tag ? (
@@ -209,7 +228,11 @@ export const SupplierProductsView = () => {
                               size="sm"
                               borderRadius="full"
                               variant="subtle"
-                              bgColor={`${tag.color}20`}
+                              bgColor={`${tag.color}15`}
+                              color={tag.color}
+                              fontSize="xs"
+                              px={2}
+                              py={0.5}
                             >
                               {tag.name}
                             </Tag>
@@ -217,41 +240,55 @@ export const SupplierProductsView = () => {
                         })}
                       </HStack>
                     </Td>
-                    <Td>
+                    <Td py={3}>
                       <Badge
                         colorScheme={getStatusColor(sheet.status)}
                         textTransform="capitalize"
+                        borderRadius="full"
+                        px={2}
+                        py={0.5}
+                        fontSize="xs"
                       >
                         {sheet.status}
                       </Badge>
                     </Td>
-                    <Td>
+                    <Td py={3} fontSize="xs" color="gray.600">
                       {sheet.dueDate ? sheet.dueDate.toLocaleDateString() : '-'}
                     </Td>
-                    <Td>
+                    <Td py={3} fontSize="xs" color="gray.600">
                       {sheet.createdAt.toLocaleDateString()}
                     </Td>
-                    <Td>
+                    <Td py={3}>
                       <Menu>
                         <MenuButton
                           as={IconButton}
-                          icon={<MoreVertical size={16} />}
+                          icon={<MoreVertical size={14} />}
                           variant="ghost"
-                          size="sm"
+                          size="xs"
+                          _hover={{ bg: 'gray.100' }}
                         />
-                        <MenuList>
+                        <MenuList 
+                          shadow="lg" 
+                          borderColor={borderColor}
+                          py={1}
+                          minW="150px"
+                        >
                           {sheet.status === 'draft' && (
                             <MenuItem
-                              icon={<Send size={16} />}
+                              icon={<Send size={14} />}
                               onClick={() => handleSend(sheet.id)}
+                              fontSize="sm"
+                              py={2}
                             >
                               Send to Supplier
                             </MenuItem>
                           )}
                           <MenuItem
-                            icon={<Trash2 size={16} />}
+                            icon={<Trash2 size={14} />}
                             onClick={() => handleDelete(sheet.id)}
                             color="red.500"
+                            fontSize="sm"
+                            py={2}
                           >
                             Delete
                           </MenuItem>
@@ -277,7 +314,6 @@ export const SupplierProductsView = () => {
   );
 };
 
-// Helper component to handle async supplier name loading
 const SupplierName = ({ 
   supplierId, 
   getSupplierName 
@@ -291,5 +327,5 @@ const SupplierName = ({
     getSupplierName(supplierId).then(setName);
   }, [supplierId]);
 
-  return <>{name}</>;
+  return <Text fontSize="xs" color="gray.700">{name}</Text>;
 };

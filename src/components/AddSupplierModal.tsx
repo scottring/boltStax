@@ -13,7 +13,8 @@ import {
   FormErrorMessage,
   VStack,
   Textarea,
-  useToast
+  useToast,
+  useColorModeValue
 } from '@chakra-ui/react';
 import { useState } from 'react';
 import { z } from 'zod';
@@ -37,12 +38,15 @@ export const AddSupplierModal = ({ isOpen, onClose, onSupplierAdded }: AddSuppli
     notes: ''
   });
 
+  const borderColor = useColorModeValue('gray.100', 'gray.600');
+  const inputBg = useColorModeValue('white', 'gray.800');
+  const labelColor = useColorModeValue('gray.700', 'gray.300');
+
   const handleSubmit = async () => {
     setIsLoading(true);
     setErrors({});
 
     try {
-      // Validate the form data
       const validationResult = SupplierInviteSchema.safeParse(formData);
 
       if (!validationResult.success) {
@@ -80,62 +84,89 @@ export const AddSupplierModal = ({ isOpen, onClose, onSupplierAdded }: AddSuppli
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
-      <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>Invite New Supplier</ModalHeader>
-        <ModalCloseButton />
+    <Modal isOpen={isOpen} onClose={onClose} size="md">
+      <ModalOverlay bg="blackAlpha.200" backdropFilter="blur(2px)" />
+      <ModalContent borderRadius="xl" shadow="lg">
+        <ModalHeader fontWeight="medium" pt={6}>Invite New Supplier</ModalHeader>
+        <ModalCloseButton size="sm" />
         <ModalBody>
-          <VStack spacing={4}>
+          <VStack spacing={5}>
             <FormControl isInvalid={!!errors.name}>
-              <FormLabel>Company Name</FormLabel>
+              <FormLabel fontSize="sm" color={labelColor}>Company Name</FormLabel>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="Enter company name"
+                size="sm"
+                bg={inputBg}
+                borderColor={borderColor}
+                _hover={{ borderColor: 'gray.300' }}
+                _focus={{ borderColor: 'green.500', boxShadow: 'none' }}
               />
-              <FormErrorMessage>{errors.name}</FormErrorMessage>
+              <FormErrorMessage fontSize="xs">{errors.name}</FormErrorMessage>
             </FormControl>
 
             <FormControl isInvalid={!!errors.contactName}>
-              <FormLabel>Contact Name</FormLabel>
+              <FormLabel fontSize="sm" color={labelColor}>Contact Name</FormLabel>
               <Input
                 value={formData.contactName}
                 onChange={(e) => setFormData(prev => ({ ...prev, contactName: e.target.value }))}
                 placeholder="Enter contact name"
+                size="sm"
+                bg={inputBg}
+                borderColor={borderColor}
+                _hover={{ borderColor: 'gray.300' }}
+                _focus={{ borderColor: 'green.500', boxShadow: 'none' }}
               />
-              <FormErrorMessage>{errors.contactName}</FormErrorMessage>
+              <FormErrorMessage fontSize="xs">{errors.contactName}</FormErrorMessage>
             </FormControl>
 
             <FormControl isInvalid={!!errors.primaryContact}>
-              <FormLabel>Contact Email</FormLabel>
+              <FormLabel fontSize="sm" color={labelColor}>Contact Email</FormLabel>
               <Input
                 type="email"
                 value={formData.primaryContact}
                 onChange={(e) => setFormData(prev => ({ ...prev, primaryContact: e.target.value }))}
                 placeholder="Enter contact email"
+                size="sm"
+                bg={inputBg}
+                borderColor={borderColor}
+                _hover={{ borderColor: 'gray.300' }}
+                _focus={{ borderColor: 'green.500', boxShadow: 'none' }}
               />
-              <FormErrorMessage>{errors.primaryContact}</FormErrorMessage>
+              <FormErrorMessage fontSize="xs">{errors.primaryContact}</FormErrorMessage>
             </FormControl>
 
             <FormControl isInvalid={!!errors.notes}>
-              <FormLabel>Notes (Optional)</FormLabel>
+              <FormLabel fontSize="sm" color={labelColor}>Notes (Optional)</FormLabel>
               <Textarea
                 value={formData.notes}
                 onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                 placeholder="Enter any additional notes"
+                size="sm"
+                bg={inputBg}
+                borderColor={borderColor}
+                _hover={{ borderColor: 'gray.300' }}
+                _focus={{ borderColor: 'green.500', boxShadow: 'none' }}
+                minH="100px"
+                resize="vertical"
               />
-              <FormErrorMessage>{errors.notes}</FormErrorMessage>
+              <FormErrorMessage fontSize="xs">{errors.notes}</FormErrorMessage>
             </FormControl>
           </VStack>
         </ModalBody>
 
-        <ModalFooter>
-          <Button variant="ghost" mr={3} onClick={onClose}>
+        <ModalFooter borderTop="1px" borderColor={borderColor} gap={2}>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={onClose}
+          >
             Cancel
           </Button>
           <Button
             colorScheme="green"
+            size="sm"
             onClick={handleSubmit}
             isLoading={isLoading}
           >

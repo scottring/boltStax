@@ -17,6 +17,8 @@ import {
   Text,
   HStack,
   useDisclosure,
+  useColorModeValue,
+  IconButton
 } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
 import { TagSelector } from '../questions/TagSelector';
@@ -58,6 +60,11 @@ export const CreateProductSheetModal = ({
     onClose: onAddSupplierClose 
   } = useDisclosure();
 
+  const borderColor = useColorModeValue('gray.100', 'gray.600');
+  const inputBg = useColorModeValue('white', 'gray.800');
+  const labelColor = useColorModeValue('gray.700', 'gray.300');
+  const helperTextColor = useColorModeValue('gray.600', 'gray.400');
+
   const handleSubmit = async (sendImmediately: boolean = false) => {
     setIsLoading(true);
     setErrors({});
@@ -76,7 +83,6 @@ export const CreateProductSheetModal = ({
         return;
       }
 
-      // Verify supplier exists before proceeding
       try {
         await getSupplier(formData.supplierId);
       } catch (error) {
@@ -140,12 +146,10 @@ export const CreateProductSheetModal = ({
 
   const handleSupplierAdded = async (newSupplierId: string) => {
     try {
-      // Verify the new supplier exists and get its data
       await getSupplier(newSupplierId);
       setFormData(prev => ({ ...prev, supplierId: newSupplierId }));
       setIsNewSupplier(true);
       onAddSupplierClose();
-      // Trigger a refresh of the parent component's supplier list
       onSheetCreated();
     } catch (error) {
       toast({
@@ -160,24 +164,29 @@ export const CreateProductSheetModal = ({
   return (
     <>
       <Modal isOpen={isOpen} onClose={onClose} size="xl">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Create Product Sheet</ModalHeader>
-          <ModalCloseButton />
+        <ModalOverlay bg="blackAlpha.200" backdropFilter="blur(2px)" />
+        <ModalContent borderRadius="xl" shadow="lg">
+          <ModalHeader fontWeight="medium" pt={6}>Create Product Sheet</ModalHeader>
+          <ModalCloseButton size="sm" />
           <ModalBody>
             <VStack spacing={6}>
               <FormControl isInvalid={!!errors.name}>
-                <FormLabel>Sheet Name</FormLabel>
+                <FormLabel fontSize="sm" color={labelColor}>Sheet Name</FormLabel>
                 <Input
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="Enter sheet name"
+                  size="sm"
+                  bg={inputBg}
+                  borderColor={borderColor}
+                  _hover={{ borderColor: 'gray.300' }}
+                  _focus={{ borderColor: 'green.500', boxShadow: 'none' }}
                 />
-                <FormErrorMessage>{errors.name}</FormErrorMessage>
+                <FormErrorMessage fontSize="xs">{errors.name}</FormErrorMessage>
               </FormControl>
 
               <FormControl isInvalid={!!errors.supplierId}>
-                <FormLabel>Select Supplier</FormLabel>
+                <FormLabel fontSize="sm" color={labelColor}>Select Supplier</FormLabel>
                 <HStack>
                   <Select
                     value={formData.supplierId}
@@ -186,6 +195,11 @@ export const CreateProductSheetModal = ({
                       setIsNewSupplier(false);
                     }}
                     placeholder="Choose a supplier"
+                    size="sm"
+                    bg={inputBg}
+                    borderColor={borderColor}
+                    _hover={{ borderColor: 'gray.300' }}
+                    _focus={{ borderColor: 'green.500', boxShadow: 'none' }}
                   >
                     {suppliers.map((supplier) => (
                       <option key={supplier.id} value={supplier.id}>
@@ -193,21 +207,21 @@ export const CreateProductSheetModal = ({
                       </option>
                     ))}
                   </Select>
-                  <Button
-                    leftIcon={<Plus size={16} />}
+                  <IconButton
+                    aria-label="Add new supplier"
+                    icon={<Plus size={16} />}
                     onClick={onAddSupplierOpen}
                     colorScheme="green"
                     variant="ghost"
-                  >
-                    New
-                  </Button>
+                    size="sm"
+                  />
                 </HStack>
-                <FormErrorMessage>{errors.supplierId}</FormErrorMessage>
+                <FormErrorMessage fontSize="xs">{errors.supplierId}</FormErrorMessage>
               </FormControl>
 
               <FormControl isInvalid={!!errors.tags}>
-                <FormLabel>Select Question Tags</FormLabel>
-                <Text fontSize="sm" color="gray.600" mb={2}>
+                <FormLabel fontSize="sm" color={labelColor}>Select Question Tags</FormLabel>
+                <Text fontSize="xs" color={helperTextColor} mb={2}>
                   Only questions with selected tags will be included in the sheet
                 </Text>
                 <TagSelector
@@ -215,29 +229,38 @@ export const CreateProductSheetModal = ({
                   selectedTagIds={formData.selectedTags}
                   onChange={(selectedTags) => setFormData(prev => ({ ...prev, selectedTags }))}
                 />
-                <FormErrorMessage>{errors.tags}</FormErrorMessage>
+                <FormErrorMessage fontSize="xs">{errors.tags}</FormErrorMessage>
               </FormControl>
 
               <FormControl>
-                <FormLabel>Due Date (Optional)</FormLabel>
+                <FormLabel fontSize="sm" color={labelColor}>Due Date (Optional)</FormLabel>
                 <Input
                   type="date"
                   value={formData.dueDate}
                   onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
                   min={new Date().toISOString().split('T')[0]}
+                  size="sm"
+                  bg={inputBg}
+                  borderColor={borderColor}
+                  _hover={{ borderColor: 'gray.300' }}
+                  _focus={{ borderColor: 'green.500', boxShadow: 'none' }}
                 />
               </FormControl>
             </VStack>
           </ModalBody>
 
-          <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onClose}>
+          <ModalFooter borderTop="1px" borderColor={borderColor} gap={2}>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={onClose}
+            >
               Cancel
             </Button>
             <Button
               variant="outline"
               colorScheme="green"
-              mr={3}
+              size="sm"
               onClick={() => handleSubmit(false)}
               isLoading={isLoading}
             >
@@ -245,6 +268,7 @@ export const CreateProductSheetModal = ({
             </Button>
             <Button
               colorScheme="green"
+              size="sm"
               onClick={() => handleSubmit(true)}
               isLoading={isLoading}
             >
