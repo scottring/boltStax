@@ -1,73 +1,149 @@
-import { z } from 'zod';
+import { Timestamp } from 'firebase/firestore';
 
-export const QuestionTypeSchema = z.enum([
-  'text',
-  'multiChoice',
-  'checkbox',
-  'file'
-]);
+// Base types for questions and tags
+export interface QuestionTag {
+  id: string;
+  name: string;
+  color: string;
+  description?: string;
+}
 
-export const QuestionSchema = z.object({
-  id: z.string(),
-  text: z.string().min(1, "Question text is required"),
-  type: QuestionTypeSchema,
-  required: z.boolean(),
-  options: z.array(z.string()).optional(),
-  tags: z.array(z.string())
-});
+export type QuestionType = 
+  | 'shortText'      // Short text input
+  | 'longText'       // Multi-line text input
+  | 'singleChoice'   // Radio buttons
+  | 'multiChoice'    // Checkboxes
+  | 'number'         // Numeric input
+  | 'date'           // Date picker
+  | 'file'           // File upload
+  | 'boolean';       // Yes/No
 
-export const RequiredDocumentSchema = z.object({
-  name: z.string().min(1, "Document name is required"),
-  description: z.string(),
-  required: z.boolean()
-});
+export interface QuestionOption {
+  id: string;
+  text: string;
+  value: string;
+}
 
-export const QuestionnaireTemplateSchema = z.object({
-  id: z.string(),
-  title: z.string().min(1, "Title is required"),
-  description: z.string(),
-  tags: z.array(z.string()),
-  questions: z.array(QuestionSchema),
-  requiredDocuments: z.array(RequiredDocumentSchema)
-});
+export interface Question {
+  id: string;
+  text: string;
+  type: QuestionType;
+  required: boolean;
+  description?: string;
+  options?: QuestionOption[];  // For singleChoice and multiChoice
+  validation?: {
+    min?: number;             // For number type
+    max?: number;             // For number type
+    pattern?: string;         // Regex pattern for text validation
+    allowedFileTypes?: string[]; // For file type
+  };
+  tags: string[];            // Tag IDs
+}
 
-export const SubmissionStatusSchema = z.enum([
-  'draft',
-  'submitted',
-  'in_review',
-  'needs_clarification',
-  'approved'
-]);
+// Template structure
+export interface QuestionnaireSection {
+  id: string;
+  title: string;
+  description?: string;
+  questions: Question[];
+  order: number;
+}
 
-export const QuestionAnswerSchema = z.object({
-  value: z.union([z.string(), z.array(z.string())]),
-  flagged: z.boolean().optional(),
-  comments: z.string().optional()
-});
+export interface QuestionnaireTemplate {
+  id: string;
+  title: string;           // Changed from 'name' to match existing code
+  description: string;
+  sections: QuestionnaireSection[];
+  tags: string[];         // All tags used in this template
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  createdBy: string;      // User ID
+  isArchived: boolean;
+  version: number;        // For tracking template versions
+}
 
-export const DocumentSubmissionSchema = z.object({
-  name: z.string(),
-  url: z.string().url(),
-  uploadedAt: z.date()
-});
+// Submission types (maintaining compatibility with existing code)
+export type SubmissionStatus = 'draft' | 'submitted' | 'approved' | 'rejected' | 'pending';
 
-export const QuestionnaireSubmissionSchema = z.object({
-  id: z.string(),
-  questionnaireId: z.string(),
-  supplierId: z.string(),
-  status: SubmissionStatusSchema,
-  answers: z.record(QuestionAnswerSchema),
-  documents: z.array(DocumentSubmissionSchema),
-  submittedAt: z.date().optional(),
-  lastUpdated: z.date(),
-  completionRate: z.number().min(0).max(100)
-});
+export interface DocumentSubmission {
+  id: string;
+  name: string;
+  url: string;
+  type: string;
+  size: number;
+  uploadedAt: Timestamp;
+  uploadedBy: string;
+}
 
-export type QuestionType = z.infer<typeof QuestionTypeSchema>;
-export type Question = z.infer<typeof QuestionSchema>;
-export type RequiredDocument = z.infer<typeof RequiredDocumentSchema>;
-export type QuestionnaireTemplate = z.infer<typeof QuestionnaireTemplateSchema>;
-export type SubmissionStatus = z.infer<typeof SubmissionStatusSchema>;
-export type QuestionAnswer = z.infer<typeof QuestionAnswerSchema>;
-export type DocumentSubmission = z.infer<typeof DocumentSubmissionSchema>;
-export type QuestionnaireSubmission = z.infer<typeof QuestionnaireSubmissionSchema>;
+export interface QuestionnaireSubmission {
+  id: string;
+  questionnaireId: string;
+  supplierId: string;
+  status: SubmissionStatus;
+  answers: Record<string, any>;  // Question ID to answer mapping
+  documents: DocumentSubmission[];
+  completionRate: number;
+  lastUpdated: Date;
+  submittedAt?: Date;
+  statusComment?: string;
+}
+
+// Response tracking
+export interface QuestionResponse {
+  questionId: string;
+  value: string | string[] | number | boolean | null;
+  fileUrls?: string[];
+  updatedAt: Timestamp;
+  updatedBy: string;
+}
+
+export interface SectionResponse {
+  sectionId: string;
+  responses: QuestionResponse[];
+  completedAt?: Timestamp;
+}
+
+export interface QuestionnaireResponse {
+  id: string;
+  templateId: string;
+  productSheetId: string;
+  supplierId: string;
+  sections: SectionResponse[];
+  status: SubmissionStatus;
+  startedAt: Timestamp;
+  lastUpdated: Timestamp;
+  submittedAt?: Timestamp;
+  submittedBy?: string;
+  completionRate: number;
+  documents: DocumentSubmission[];
+}
+
+// Autosave drafts
+export interface ResponseDraft {
+  id: string;
+  responseId: string;
+  questionId: string;
+  value: string | string[] | number | boolean | null;
+  fileUrls?: string[];
+  savedAt: Timestamp;
+}
+
+// Template versioning
+export interface TemplateVersion {
+  id: string;
+  templateId: string;
+  version: number;
+  changes: string[];
+  sections: QuestionnaireSection[];
+  updatedAt: Timestamp;
+  updatedBy: string;
+}
+
+// Usage tracking
+export interface TemplateUsage {
+  templateId: string;
+  productSheetId: string;
+  startedAt: Timestamp;
+  completedAt?: Timestamp;
+  status: 'active' | 'completed' | 'archived';
+}

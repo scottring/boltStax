@@ -14,14 +14,20 @@ import {
   Tooltip,
   IconButton
 } from '@chakra-ui/react';
-import { FiUsers, FiFileText, FiHelpCircle, FiChevronRight, FiChevronLeft } from 'react-icons/fi';
+import { FiUsers, FiFileText, FiHelpCircle, FiChevronRight, FiChevronLeft, FiLayout } from 'react-icons/fi';
 import { useState } from 'react';
 import logo from '../assets/logo.svg';
-import icon from '../assets/icon.svg';
+
+type ViewType = 
+  | 'companies' 
+  | 'questions' 
+  | 'supplierProducts' 
+  | 'customerProducts'
+  | 'templates';
 
 interface SidebarProps {
-  onNavigate: (view: 'companies' | 'questions' | 'supplierProducts') => void;
-  currentView: 'companies' | 'questions' | 'supplierProducts';
+  onNavigate: (view: ViewType) => void;
+  currentView: ViewType;
 }
 
 export const Sidebar = ({ onNavigate, currentView }: SidebarProps) => {
@@ -49,6 +55,18 @@ export const Sidebar = ({ onNavigate, currentView }: SidebarProps) => {
       view: 'questions' as const, 
       icon: FiHelpCircle,
       active: currentView === 'questions' 
+    },
+    { 
+      text: 'Customer Products', 
+      view: 'customerProducts' as const, 
+      icon: FiFileText,
+      active: currentView === 'customerProducts' 
+    },
+    { 
+      text: 'Templates', 
+      view: 'templates' as const, 
+      icon: FiLayout,
+      active: currentView === 'templates' 
     }
   ];
 
@@ -65,8 +83,9 @@ export const Sidebar = ({ onNavigate, currentView }: SidebarProps) => {
       <VStack spacing={8} align="center" pt={6}>
         <Box>
           <Image 
-            src={isExpanded ? logo : icon}
+            src={logo}
             alt="Stacks Data"
+            width={isExpanded ? "180px" : "44px"}
           />
         </Box>
 

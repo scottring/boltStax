@@ -4,10 +4,18 @@ import { CompaniesView } from './components/CompaniesView';
 import { QuestionsView } from './components/questions/QuestionsView';
 import { SupplierProductsView } from './components/products/SupplierProductsView';
 import { CustomersProductsView } from './components/customers/CustomersProductsView';
+import { QuestionnaireTemplatesView } from './components/questionnaires/QuestionnaireTemplatesView';
 import { useState } from 'react';
 
+type ViewType = 
+  | 'companies' 
+  | 'questions' 
+  | 'supplierProducts' 
+  | 'customerProducts'
+  | 'templates';
+
 function App() {
-  const [currentView, setCurrentView] = useState<'companies' | 'questions' | 'supplierProducts' | 'customerProducts'>('companies');
+  const [currentView, setCurrentView] = useState<ViewType>('companies');
 
   return (
     <Flex h="100vh">
@@ -17,6 +25,7 @@ function App() {
         {currentView === 'questions' && <QuestionsView />}
         {currentView === 'supplierProducts' && <SupplierProductsView />}
         {currentView === 'customerProducts' && <CustomersProductsView />}
+        {currentView === 'templates' && <QuestionnaireTemplatesView />}
       </Box>
     </Flex>
   );
