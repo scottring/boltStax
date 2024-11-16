@@ -8,71 +8,143 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
-  useColorModeValue
+  useColorModeValue,
+  Image,
+  Icon,
+  Tooltip,
+  IconButton
 } from '@chakra-ui/react';
+import { FiUsers, FiFileText, FiHelpCircle, FiChevronRight, FiChevronLeft, FiLayout } from 'react-icons/fi';
+import { useState } from 'react';
+import logo from '../assets/logo.svg';
+
+type ViewType = 
+  | 'companies' 
+  | 'questions' 
+  | 'supplierProducts' 
+  | 'customerProducts'
+  | 'templates';
 
 interface SidebarProps {
-  onNavigate: (view: 'companies' | 'questions' | 'supplierProducts') => void;
-  currentView: 'companies' | 'questions' | 'supplierProducts';
+  onNavigate: (view: ViewType) => void;
+  currentView: ViewType;
 }
 
 export const Sidebar = ({ onNavigate, currentView }: SidebarProps) => {
+  const [isExpanded, setIsExpanded] = useState(false);
   const bgColor = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const borderColor = useColorModeValue('gray.100', 'gray.700');
+  const iconColor = useColorModeValue('gray.600', 'gray.400');
+  const activeColor = useColorModeValue('green.500', 'green.300');
 
   const menuItems = [
-    { text: 'Our Suppliers', view: 'companies' as const, active: currentView === 'companies' },
-    { text: 'Product Sheets', view: 'supplierProducts' as const, active: currentView === 'supplierProducts' },
-    { text: 'Question Bank', view: 'questions' as const, active: currentView === 'questions' }
+    { 
+      text: 'Our Suppliers', 
+      view: 'companies' as const, 
+      icon: FiUsers,
+      active: currentView === 'companies' 
+    },
+    { 
+      text: 'Product Sheets', 
+      view: 'supplierProducts' as const, 
+      icon: FiFileText,
+      active: currentView === 'supplierProducts' 
+    },
+    { 
+      text: 'Question Bank', 
+      view: 'questions' as const, 
+      icon: FiHelpCircle,
+      active: currentView === 'questions' 
+    },
+    { 
+      text: 'Customer Products', 
+      view: 'customerProducts' as const, 
+      icon: FiFileText,
+      active: currentView === 'customerProducts' 
+    },
+    { 
+      text: 'Templates', 
+      view: 'templates' as const, 
+      icon: FiLayout,
+      active: currentView === 'templates' 
+    }
   ];
 
   return (
     <Box
-      w="250px"
+      w={isExpanded ? "240px" : "72px"}
       h="100vh"
       bg={bgColor}
       borderRight="1px"
       borderColor={borderColor}
-      py={4}
+      position="relative"
+      transition="width 0.2s"
     >
-      <VStack spacing={8} align="stretch">
-        <Box px={4}>
-          <Text fontSize="xl" fontWeight="bold">StacksData</Text>
+      <VStack spacing={8} align="center" pt={6}>
+        <Box>
+          <Image 
+            src={logo}
+            alt="Stacks Data"
+            width={isExpanded ? "180px" : "44px"}
+          />
         </Box>
 
-        <VStack spacing={1} align="stretch">
+        <VStack spacing={4} align="stretch" width="100%">
           {menuItems.map((item, index) => (
-            <Flex
-              key={index}
-              px={4}
-              py={3}
-              align="center"
-              cursor="pointer"
-              bg={item.active ? 'gray.100' : 'transparent'}
-              _hover={{ bg: 'gray.50' }}
-              borderRadius="md"
-              mx={2}
-              onClick={() => onNavigate(item.view)}
+            <Tooltip 
+              key={index} 
+              label={!isExpanded ? item.text : undefined} 
+              placement="right"
+              hasArrow
             >
-              <Text 
-                color={item.active ? 'green.500' : 'gray.600'} 
-                fontWeight={item.active ? 'medium' : 'normal'}
+              <Flex
+                px={4}
+                py={3}
+                align="center"
+                cursor="pointer"
+                color={item.active ? activeColor : iconColor}
+                _hover={{ 
+                  color: activeColor,
+                  bg: useColorModeValue('gray.50', 'gray.700') 
+                }}
+                borderRadius="md"
+                mx={2}
+                transition="all 0.2s"
+                onClick={() => onNavigate(item.view)}
               >
-                {item.text}
-              </Text>
-            </Flex>
+                <Icon 
+                  as={item.icon} 
+                  boxSize={5}
+                  mr={isExpanded ? 3 : 0}
+                />
+                {isExpanded && (
+                  <Text fontSize="sm">{item.text}</Text>
+                )}
+              </Flex>
+            </Tooltip>
           ))}
         </VStack>
 
-        <Box mt="auto" px={4}>
-          <Menu>
+        <Box 
+          position="absolute" 
+          bottom={4} 
+          left={0} 
+          right={0}
+          px={2}
+        >
+          <Menu placement="right">
             <MenuButton w="full">
-              <Flex align="center" gap={3} p={2}>
+              <Flex 
+                justify="center" 
+                align="center"
+                p={2}
+                borderRadius="md"
+                _hover={{ bg: useColorModeValue('gray.50', 'gray.700') }}
+              >
                 <Avatar size="sm" name="Amanda" />
-                <Box flex={1}>
-                  <Text fontSize="sm" fontWeight="medium">Amanda</Text>
-                  <Text fontSize="xs" color="gray.500">Show Profile</Text>
-                </Box>
+                {isExpanded && (
+                  <Text ml={3} fontSize="sm">Amanda</Text>
+                )}
               </Flex>
             </MenuButton>
             <MenuList>
@@ -82,6 +154,20 @@ export const Sidebar = ({ onNavigate, currentView }: SidebarProps) => {
             </MenuList>
           </Menu>
         </Box>
+
+        <IconButton
+          aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
+          icon={isExpanded ? <FiChevronLeft /> : <FiChevronRight />}
+          position="absolute"
+          right="-12px"
+          top="50%"
+          transform="translateY(-50%)"
+          size="sm"
+          borderRadius="full"
+          boxShadow="md"
+          onClick={() => setIsExpanded(!isExpanded)}
+          zIndex="1"
+        />
       </VStack>
     </Box>
   );
