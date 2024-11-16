@@ -1,60 +1,97 @@
-import {
-  Box,
-  Text,
-  VStack,
+import { 
+  Box, 
+  Text, 
+  VStack, 
+  Link, 
+  Icon,
+  useColorModeValue
 } from '@chakra-ui/react';
-import { useDropzone } from 'react-dropzone';
 import { useCallback } from 'react';
+import { useDropzone } from 'react-dropzone';
+import { Upload, File } from 'lucide-react';
 
-interface FileDropzoneProps {
-  onFileSelect: (file: File) => void;
+export interface FileDropzoneProps {
+  acceptedFileTypes?: string[];
+  existingFiles?: string[];
+  onFilesUploaded: (urls: string[]) => void;
 }
 
-export const FileDropzone = ({ onFileSelect }: FileDropzoneProps) => {
+export const FileDropzone = ({
+  acceptedFileTypes,
+  existingFiles = [],
+  onFilesUploaded
+}: FileDropzoneProps) => {
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    if (file) {
-      console.log('File selected:', file.name, file.type, file.size);
-      onFileSelect(file);
-    }
-  }, [onFileSelect]);
+    // TODO: Implement actual file upload logic
+    const mockUrls = acceptedFiles.map(file => 
+      URL.createObjectURL(file)
+    );
+    onFilesUploaded(mockUrls);
+  }, [onFilesUploaded]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-      'application/vnd.ms-excel': ['.xls'],
-      'text/csv': ['.csv'],
-    },
-    multiple: false,
-    maxSize: 5242880, // 5MB
+    accept: acceptedFileTypes 
+      ? Object.fromEntries(acceptedFileTypes.map(type => [type, []]))
+      : undefined
   });
 
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const bgColor = useColorModeValue('gray.50', 'gray.700');
+  const activeBgColor = useColorModeValue('gray.100', 'gray.600');
+
   return (
-    <Box
-      {...getRootProps()}
-      w="full"
-      p={10}
-      border="2px"
-      borderColor={isDragActive ? 'green.500' : 'gray.200'}
-      borderStyle="dashed"
-      borderRadius="md"
-      bg={isDragActive ? 'green.50' : 'gray.50'}
-      cursor="pointer"
-      transition="all 0.2s"
-      _hover={{ bg: 'gray.100' }}
-    >
-      <input {...getInputProps()} />
-      <VStack spacing={2}>
-        <Text color="gray.600">
-          {isDragActive
-            ? 'Drop the file here'
-            : 'Drag and drop an Excel file, or click to select'}
-        </Text>
-        <Text fontSize="sm" color="gray.500">
-          Supports .xlsx, .xls, and .csv files (max 5MB)
-        </Text>
-      </VStack>
-    </Box>
+    <VStack spacing={4} align="stretch">
+      <Box
+        {...getRootProps()}
+        borderWidth={2}
+        borderStyle="dashed"
+        borderColor={isDragActive ? 'green.500' : borderColor}
+        borderRadius="md"
+        p={6}
+        bg={isDragActive ? activeBgColor : bgColor}
+        cursor="pointer"
+        transition="all 0.2s"
+        _hover={{
+          borderColor: 'green.500'
+        }}
+      >
+        <input {...getInputProps()} />
+        <VStack spacing={2}>
+          <Icon as={Upload} boxSize={6} color={isDragActive ? 'green.500' : 'gray.500'} />
+          <Text textAlign="center" color="gray.500">
+            {isDragActive
+              ? 'Drop files here'
+              : 'Drag and drop files here, or click to select files'}
+          </Text>
+          {acceptedFileTypes && (
+            <Text fontSize="sm" color="gray.500">
+              Accepted file types: {acceptedFileTypes.join(', ')}
+            </Text>
+          )}
+        </VStack>
+      </Box>
+
+      {existingFiles.length > 0 && (
+        <VStack align="stretch" spacing={2}>
+          <Text fontSize="sm" fontWeight="medium">Uploaded Files:</Text>
+          {existingFiles.map((file, index) => (
+            <Link
+              key={index}
+              href={file}
+              target="_blank"
+              rel="noopener noreferrer"
+              fontSize="sm"
+              color="green.500"
+              display="flex"
+              alignItems="center"
+            >
+              <Icon as={File} mr={2} boxSize={4} />
+              {file.split('/').pop()}
+            </Link>
+          ))}
+        </VStack>
+      )}
+    </VStack>
   );
 };

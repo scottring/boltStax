@@ -1,161 +1,162 @@
-import { collection, addDoc, query, where, orderBy, Timestamp, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { 
+  collection, 
+  addDoc, 
+  Timestamp,
+  DocumentReference,
+  query,
+  where,
+  getDocs,
+  orderBy,
+  limit as firestoreLimit,
+  updateDoc,
+  doc,
+  QueryConstraint
+} from 'firebase/firestore';
 import { db } from '../config/firebase';
 
-export interface Notification {
-  id: string;
-  recipientId: string;
-  type: 'request' | 'submission' | 'review' | 'clarification' | 'approval' | 'reminder';
-  title: string;
-  message: string;
-  relatedId?: string; // ID of related item (questionnaire, submission, etc.)
-  read: boolean;
-  createdAt: Date;
+export type NotificationType = 
+  | 'questionnaireAssigned'
+  | 'questionnaireSubmitted'
+  | 'supplierInvited'
+  | 'supplierJoined';
+
+interface BaseNotification {
+  id?: string;
+  type: NotificationType;
+  timestamp: Timestamp;
+  read?: boolean;
 }
 
+export interface QuestionnaireNotification extends BaseNotification {
+  type: 'questionnaireAssigned' | 'questionnaireSubmitted';
+  productSheetId: string;
+  supplierId: string;
+}
+
+export interface SupplierNotification extends BaseNotification {
+  type: 'supplierInvited' | 'supplierJoined';
+  supplierId: string;
+}
+
+export type Notification = QuestionnaireNotification | SupplierNotification;
+
 const NOTIFICATIONS_COLLECTION = 'notifications';
+const EMAIL_QUEUE_COLLECTION = 'emailQueue';
 
-export const createNotification = async (
-  notification: Omit<Notification, 'id' | 'read' | 'createdAt'>
-): Promise<string> => {
+interface EmailQueueItem {
+  to: string;
+  template: string;
+  context: Record<string, any>;
+  scheduledFor: Timestamp;
+  sent?: boolean;
+  error?: string;
+}
+
+function isQuestionnaireNotification(
+  notification: Omit<Notification, 'id' | 'read'>
+): notification is Omit<QuestionnaireNotification, 'id' | 'read'> {
+  return (
+    notification.type === 'questionnaireAssigned' ||
+    notification.type === 'questionnaireSubmitted'
+  );
+}
+
+function isSupplierNotification(
+  notification: Omit<Notification, 'id' | 'read'>
+): notification is Omit<SupplierNotification, 'id' | 'read'> {
+  return (
+    notification.type === 'supplierInvited' ||
+    notification.type === 'supplierJoined'
+  );
+}
+
+export const sendNotification = async (
+  notification: Omit<Notification, 'id' | 'read'>
+): Promise<DocumentReference> => {
   try {
-    const notificationData = {
-      ...notification,
-      read: false,
-      createdAt: Timestamp.fromDate(new Date())
-    };
+    // Add notification to the notifications collection
+    const notificationRef = await addDoc(
+      collection(db, NOTIFICATIONS_COLLECTION), 
+      {
+        ...notification,
+        read: false
+      }
+    );
 
-    const docRef = await addDoc(collection(db, NOTIFICATIONS_COLLECTION), notificationData);
-    return docRef.id;
-  } catch (error) {
-    console.error('Error creating notification:', error);
-    if (error instanceof Error) {
-      throw new Error(`Failed to create notification: ${error.message}`);
+    // Queue email notification
+    let emailTemplate: string;
+    let emailContext: Record<string, any>;
+
+    if (isQuestionnaireNotification(notification)) {
+      emailTemplate = notification.type === 'questionnaireAssigned' 
+        ? 'questionnaire-assigned'
+        : 'questionnaire-submitted';
+      emailContext = {
+        productSheetId: notification.productSheetId,
+        supplierId: notification.supplierId
+      };
+    } else if (isSupplierNotification(notification)) {
+      emailTemplate = notification.type === 'supplierInvited'
+        ? 'supplier-invited'
+        : 'supplier-joined';
+      emailContext = {
+        supplierId: notification.supplierId
+      };
+    } else {
+      throw new Error('Invalid notification type');
     }
-    throw new Error('Failed to create notification');
+
+    // Add to email queue
+    await addDoc(collection(db, EMAIL_QUEUE_COLLECTION), {
+      template: emailTemplate,
+      context: emailContext,
+      scheduledFor: Timestamp.now(),
+      sent: false
+    } as EmailQueueItem);
+
+    return notificationRef;
+  } catch (error) {
+    console.error('Error sending notification:', error);
+    throw error;
   }
 };
 
-export const getUnreadNotifications = async (recipientId: string): Promise<Notification[]> => {
+export const getUnreadNotifications = async (
+  userId: string,
+  limitCount?: number
+): Promise<Notification[]> => {
   try {
-    const q = query(
-      collection(db, NOTIFICATIONS_COLLECTION),
-      where('recipientId', '==', recipientId),
+    const constraints: QueryConstraint[] = [
       where('read', '==', false),
-      orderBy('createdAt', 'desc')
-    );
+      orderBy('timestamp', 'desc')
+    ];
+    
+    if (typeof limitCount === 'number') {
+      constraints.push(firestoreLimit(limitCount));
+    }
 
+    const q = query(collection(db, NOTIFICATIONS_COLLECTION), ...constraints);
     const querySnapshot = await getDocs(q);
+    
     return querySnapshot.docs.map(doc => ({
       id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt.toDate()
-    })) as Notification[];
+      ...doc.data()
+    } as Notification));
   } catch (error) {
-    console.error('Error fetching unread notifications:', error);
-    if (error instanceof Error) {
-      throw new Error(`Failed to fetch unread notifications: ${error.message}`);
-    }
-    throw new Error('Failed to fetch unread notifications');
+    console.error('Error fetching notifications:', error);
+    throw error;
   }
 };
 
 export const markNotificationAsRead = async (notificationId: string): Promise<void> => {
   try {
-    const docRef = doc(db, NOTIFICATIONS_COLLECTION, notificationId);
-    await updateDoc(docRef, {
-      read: true
+    const notificationRef = doc(db, NOTIFICATIONS_COLLECTION, notificationId);
+    await updateDoc(notificationRef, {
+      read: true,
+      readAt: Timestamp.now()
     });
   } catch (error) {
     console.error('Error marking notification as read:', error);
-    if (error instanceof Error) {
-      throw new Error(`Failed to mark notification as read: ${error.message}`);
-    }
-    throw new Error('Failed to mark notification as read');
+    throw error;
   }
-};
-
-// Notification creation helpers for specific workflow events
-export const notifySupplierInvitation = async (
-  supplierId: string,
-  supplierName: string,
-  supplierEmail: string
-): Promise<void> => {
-  await createNotification({
-    recipientId: supplierId,
-    type: 'request',
-    title: 'New Supplier Invitation',
-    message: `${supplierName} (${supplierEmail}) has been invited to join the platform.`,
-  });
-};
-
-export const notifyQuestionnaireRequest = async (
-  supplierId: string,
-  questionnaireId: string,
-  questionnaireName: string
-): Promise<void> => {
-  await createNotification({
-    recipientId: supplierId,
-    type: 'request',
-    title: 'New Questionnaire Request',
-    message: `You have received a new questionnaire request: ${questionnaireName}`,
-    relatedId: questionnaireId
-  });
-};
-
-export const notifySubmissionReceived = async (
-  customerId: string,
-  supplierId: string,
-  questionnaireId: string,
-  supplierName: string
-): Promise<void> => {
-  await createNotification({
-    recipientId: customerId,
-    type: 'submission',
-    title: 'New Questionnaire Submission',
-    message: `${supplierName} has submitted their response to the questionnaire.`,
-    relatedId: questionnaireId
-  });
-};
-
-export const notifyClarificationRequest = async (
-  supplierId: string,
-  questionnaireId: string,
-  questionnaireName: string
-): Promise<void> => {
-  await createNotification({
-    recipientId: supplierId,
-    type: 'clarification',
-    title: 'Clarification Requested',
-    message: `Additional clarification has been requested for questionnaire: ${questionnaireName}`,
-    relatedId: questionnaireId
-  });
-};
-
-export const notifySubmissionApproved = async (
-  supplierId: string,
-  questionnaireId: string,
-  questionnaireName: string
-): Promise<void> => {
-  await createNotification({
-    recipientId: supplierId,
-    type: 'approval',
-    title: 'Submission Approved',
-    message: `Your submission for ${questionnaireName} has been approved.`,
-    relatedId: questionnaireId
-  });
-};
-
-export const notifyDeadlineReminder = async (
-  supplierId: string,
-  questionnaireId: string,
-  questionnaireName: string,
-  daysRemaining: number
-): Promise<void> => {
-  await createNotification({
-    recipientId: supplierId,
-    type: 'reminder',
-    title: 'Submission Deadline Reminder',
-    message: `The questionnaire "${questionnaireName}" is due in ${daysRemaining} days.`,
-    relatedId: questionnaireId
-  });
 };

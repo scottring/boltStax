@@ -1,6 +1,7 @@
 import { collection, addDoc, getDocs, query, where, orderBy, Timestamp, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import type { SupplierInvite, Supplier } from '../types/supplier';
+import { sendEmail } from './email';
 
 const SUPPLIERS_COLLECTION = 'suppliers';
 
@@ -49,7 +50,22 @@ export const inviteSupplier = async (invite: SupplierInvite): Promise<Supplier> 
       invitationSentDate: Timestamp.fromDate(now)
     };
 
+    // Create supplier record
     const docRef = await addDoc(collection(db, SUPPLIERS_COLLECTION), supplierData);
+    
+    // Generate invitation URL
+    const inviteUrl = `${window.location.origin}?invite=${docRef.id}`;
+
+    // Send invitation email
+    await sendEmail({
+      to: invite.primaryContact,
+      template: 'SUPPLIER_INVITATION',
+      data: {
+        contactName: invite.contactName,
+        companyName: invite.name,
+        accessUrl: inviteUrl
+      }
+    });
 
     return {
       id: docRef.id,

@@ -8,12 +8,15 @@ import {
   doc, 
   getDoc, 
   updateDoc,
-  DocumentData 
+  DocumentData,
+  where,
+  collectionGroup
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import type { Supplier, ComplianceRecord } from '../types/supplier';
 
 const SUPPLIERS_COLLECTION = 'suppliers';
+const COMPANY_SUPPLIERS_COLLECTION = 'companySuppliers';
 
 const convertToFirestoreData = (supplier: Omit<Supplier, 'id'>) => ({
   name: supplier.name,
@@ -60,12 +63,27 @@ const convertFromFirestoreData = (id: string, data: DocumentData): Supplier => (
   })) || []
 });
 
-export const addSupplier = async (supplierData: Omit<Supplier, 'id'>): Promise<Supplier> => {
+export const addSupplier = async (
+  companyId: string,
+  supplierData: Omit<Supplier, 'id'>
+): Promise<Supplier> => {
   try {
     const firestoreData = convertToFirestoreData(supplierData);
-    const docRef = await addDoc(collection(db, SUPPLIERS_COLLECTION), firestoreData);
+    
+    // Add supplier to suppliers collection
+    const supplierRef = await addDoc(collection(db, SUPPLIERS_COLLECTION), firestoreData);
+    
+    // Create relationship in companySuppliers collection
+    await addDoc(
+      collection(db, COMPANY_SUPPLIERS_COLLECTION, companyId, 'suppliers'),
+      {
+        supplierId: supplierRef.id,
+        addedAt: Timestamp.now()
+      }
+    );
+
     return {
-      id: docRef.id,
+      id: supplierRef.id,
       ...supplierData
     };
   } catch (error) {
@@ -96,12 +114,29 @@ export const getSupplier = async (supplierId: string): Promise<Supplier> => {
   }
 };
 
-export const getSuppliers = async (): Promise<Supplier[]> => {
+export const getSuppliers = async (companyId: string): Promise<Supplier[]> => {
   try {
-    const q = query(collection(db, SUPPLIERS_COLLECTION), orderBy('lastUpdated', 'desc'));
-    const querySnapshot = await getDocs(q);
+    // Get all supplier IDs for the company
+    const companySuppliersDocs = await getDocs(
+      collection(db, COMPANY_SUPPLIERS_COLLECTION, companyId, 'suppliers')
+    );
     
-    return querySnapshot.docs.map(doc => 
+    const supplierIds = companySuppliersDocs.docs.map(doc => doc.data().supplierId);
+    
+    if (supplierIds.length === 0) {
+      return [];
+    }
+
+    // Fetch all suppliers that match the IDs
+    const suppliersQuery = query(
+      collection(db, SUPPLIERS_COLLECTION),
+      where('__name__', 'in', supplierIds),
+      orderBy('lastUpdated', 'desc')
+    );
+    
+    const suppliersSnapshot = await getDocs(suppliersQuery);
+    
+    return suppliersSnapshot.docs.map(doc => 
       convertFromFirestoreData(doc.id, doc.data())
     );
   } catch (error) {
@@ -113,7 +148,10 @@ export const getSuppliers = async (): Promise<Supplier[]> => {
   }
 };
 
-export const updateSupplier = async (supplierId: string, updates: Partial<Omit<Supplier, 'id'>>): Promise<void> => {
+export const updateSupplier = async (
+  supplierId: string,
+  updates: Partial<Omit<Supplier, 'id'>>
+): Promise<void> => {
   try {
     const docRef = doc(db, SUPPLIERS_COLLECTION, supplierId);
     const updateData: Record<string, any> = {};

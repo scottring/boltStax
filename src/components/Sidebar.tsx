@@ -1,174 +1,156 @@
-import { 
-  Box, 
-  VStack, 
-  Text,
-  Flex,
-  Avatar,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
-  useColorModeValue,
-  Image,
-  Icon,
-  Tooltip,
-  IconButton
-} from '@chakra-ui/react';
-import { FiUsers, FiFileText, FiHelpCircle, FiChevronRight, FiChevronLeft, FiLayout } from 'react-icons/fi';
-import { useState } from 'react';
+import { Box, VStack, Icon, Text, Flex, useColorModeValue, Image, IconButton } from '@chakra-ui/react';
+import { FiUsers, FiList, FiPackage, FiShoppingBag, FiFileText, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import logo from '../assets/logo.svg';
+import icon from '../assets/icon.svg';
+import { useState } from 'react';
 
-type ViewType = 
-  | 'companies' 
-  | 'questions' 
-  | 'supplierProducts' 
-  | 'customerProducts'
-  | 'templates';
+export type ViewType = 'mySuppliers' | 'questions' | 'supplierProducts' | 'customerProducts' | 'templates' | 'questionnaireResponse';
 
 interface SidebarProps {
-  onNavigate: (view: ViewType) => void;
+  onNavigate: (view: ViewType, params?: any) => void;
   currentView: ViewType;
+  hasSuppliers: boolean;
 }
 
-export const Sidebar = ({ onNavigate, currentView }: SidebarProps) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const bgColor = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.100', 'gray.700');
-  const iconColor = useColorModeValue('gray.600', 'gray.400');
-  const activeColor = useColorModeValue('green.500', 'green.300');
+interface NavItemProps {
+  icon: any;
+  children: string;
+  isActive?: boolean;
+  onClick: () => void;
+  disabled?: boolean;
+  isCollapsed?: boolean;
+}
 
-  const menuItems = [
-    { 
-      text: 'Our Suppliers', 
-      view: 'companies' as const, 
-      icon: FiUsers,
-      active: currentView === 'companies' 
-    },
-    { 
-      text: 'Product Sheets', 
-      view: 'supplierProducts' as const, 
-      icon: FiFileText,
-      active: currentView === 'supplierProducts' 
-    },
-    { 
-      text: 'Question Bank', 
-      view: 'questions' as const, 
-      icon: FiHelpCircle,
-      active: currentView === 'questions' 
-    },
-    { 
-      text: 'Customer Products', 
-      view: 'customerProducts' as const, 
-      icon: FiFileText,
-      active: currentView === 'customerProducts' 
-    },
-    { 
-      text: 'Templates', 
-      view: 'templates' as const, 
-      icon: FiLayout,
-      active: currentView === 'templates' 
-    }
-  ];
+const NavItem = ({ icon, children, isActive, onClick, disabled, isCollapsed }: NavItemProps) => {
+  const activeBg = useColorModeValue('gray.100', 'gray.700');
+  const hoverBg = useColorModeValue('gray.100', 'gray.700');
+  const color = useColorModeValue('gray.700', 'gray.200');
+  const disabledColor = useColorModeValue('gray.400', 'gray.600');
+
+  return (
+    <Flex
+      align="center"
+      px="4"
+      py="3"
+      cursor={disabled ? 'not-allowed' : 'pointer'}
+      role="group"
+      bg={isActive ? activeBg : 'transparent'}
+      _hover={disabled ? {} : { bg: hoverBg }}
+      onClick={disabled ? undefined : onClick}
+      color={disabled ? disabledColor : color}
+      opacity={disabled ? 0.6 : 1}
+      justify={isCollapsed ? "center" : "flex-start"}
+    >
+      <Icon as={icon} fontSize="16" />
+      {!isCollapsed && <Text ml="3" fontSize="sm" fontWeight={isActive ? 'medium' : 'normal'}>
+        {children}
+      </Text>}
+    </Flex>
+  );
+};
+
+export const Sidebar = ({ onNavigate, currentView, hasSuppliers }: SidebarProps) => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const bg = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
 
   return (
     <Box
-      w={isExpanded ? "240px" : "72px"}
+      as="nav"
+      pos="sticky"
+      top="0"
       h="100vh"
-      bg={bgColor}
+      bg={bg}
       borderRight="1px"
       borderColor={borderColor}
-      position="relative"
+      w={isCollapsed ? "16" : "64"}
       transition="width 0.2s"
+      position="relative"
     >
-      <VStack spacing={8} align="center" pt={6}>
-        <Box>
-          <Image 
-            src={logo}
-            alt="Stacks Data"
-            width={isExpanded ? "180px" : "44px"}
-          />
-        </Box>
-
-        <VStack spacing={4} align="stretch" width="100%">
-          {menuItems.map((item, index) => (
-            <Tooltip 
-              key={index} 
-              label={!isExpanded ? item.text : undefined} 
-              placement="right"
-              hasArrow
-            >
-              <Flex
-                px={4}
-                py={3}
-                align="center"
-                cursor="pointer"
-                color={item.active ? activeColor : iconColor}
-                _hover={{ 
-                  color: activeColor,
-                  bg: useColorModeValue('gray.50', 'gray.700') 
-                }}
-                borderRadius="md"
-                mx={2}
-                transition="all 0.2s"
-                onClick={() => onNavigate(item.view)}
-              >
-                <Icon 
-                  as={item.icon} 
-                  boxSize={5}
-                  mr={isExpanded ? 3 : 0}
-                />
-                {isExpanded && (
-                  <Text fontSize="sm">{item.text}</Text>
-                )}
-              </Flex>
-            </Tooltip>
-          ))}
-        </VStack>
-
-        <Box 
-          position="absolute" 
-          bottom={4} 
-          left={0} 
-          right={0}
-          px={2}
+      <Flex direction="column" h="full">
+        <Flex 
+          px={isCollapsed ? "2" : "6"} 
+          py="6" 
+          align="center" 
+          justify="center"
         >
-          <Menu placement="right">
-            <MenuButton w="full">
-              <Flex 
-                justify="center" 
-                align="center"
-                p={2}
-                borderRadius="md"
-                _hover={{ bg: useColorModeValue('gray.50', 'gray.700') }}
-              >
-                <Avatar size="sm" name="Amanda" />
-                {isExpanded && (
-                  <Text ml={3} fontSize="sm">Amanda</Text>
-                )}
-              </Flex>
-            </MenuButton>
-            <MenuList>
-              <MenuItem>Profile</MenuItem>
-              <MenuItem>Settings</MenuItem>
-              <MenuItem color="red.500">Logout</MenuItem>
-            </MenuList>
-          </Menu>
-        </Box>
+          <Box width={isCollapsed ? "32px" : "auto"}>
+            <Image 
+              src={isCollapsed ? icon : logo} 
+              alt="Stacks Data" 
+              height="32px"
+              width={isCollapsed ? "32px" : "auto"}
+              objectFit="contain"
+            />
+          </Box>
+        </Flex>
 
         <IconButton
-          aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
-          icon={isExpanded ? <FiChevronLeft /> : <FiChevronRight />}
-          position="absolute"
-          right="-12px"
-          top="50%"
-          transform="translateY(-50%)"
+          icon={isCollapsed ? <FiChevronRight /> : <FiChevronLeft />}
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          variant="solid"
           size="sm"
+          position="absolute"
+          top="7"
+          right="-3"
+          transform="translateX(50%)"
           borderRadius="full"
-          boxShadow="md"
-          onClick={() => setIsExpanded(!isExpanded)}
+          boxShadow="base"
+          bg={bg}
+          _hover={{ bg: bg }}
+          _active={{ bg: bg }}
           zIndex="1"
         />
-      </VStack>
+
+        <VStack spacing="1" align="stretch" px={isCollapsed ? "0" : "2"} mt="4">
+          <NavItem
+            icon={FiUsers}
+            isActive={currentView === 'mySuppliers'}
+            onClick={() => onNavigate('mySuppliers')}
+            isCollapsed={isCollapsed}
+          >
+            My Suppliers
+          </NavItem>
+          
+          <NavItem
+            icon={FiList}
+            isActive={currentView === 'questions'}
+            onClick={() => onNavigate('questions')}
+            isCollapsed={isCollapsed}
+          >
+            Questions
+          </NavItem>
+
+          <NavItem
+            icon={FiPackage}
+            isActive={currentView === 'supplierProducts'}
+            onClick={() => onNavigate('supplierProducts')}
+            disabled={!hasSuppliers}
+            isCollapsed={isCollapsed}
+          >
+            Supplier Products
+          </NavItem>
+
+          <NavItem
+            icon={FiShoppingBag}
+            isActive={currentView === 'customerProducts'}
+            onClick={() => onNavigate('customerProducts')}
+            isCollapsed={isCollapsed}
+          >
+            Customer Products
+          </NavItem>
+
+          <NavItem
+            icon={FiFileText}
+            isActive={currentView === 'templates'}
+            onClick={() => onNavigate('templates')}
+            isCollapsed={isCollapsed}
+          >
+            Templates
+          </NavItem>
+        </VStack>
+      </Flex>
     </Box>
   );
 };

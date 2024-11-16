@@ -17,6 +17,7 @@ import type { Supplier } from '../types/supplier';
 import { SupplierTable } from './SupplierTable';
 import { AddSupplierModal } from './AddSupplierModal';
 import { getSuppliers } from '../services/suppliers';
+import { useAuth } from '../contexts/AuthContext';
 
 export const CompaniesView = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -24,11 +25,18 @@ export const CompaniesView = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const toast = useToast();
+  const { userData } = useAuth();
 
   const fetchSuppliers = async () => {
+    if (!userData?.companyId) {
+      setError('No company ID found');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setError(null);
-      const data = await getSuppliers();
+      const data = await getSuppliers(userData.companyId);
       setSuppliers(data);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
@@ -47,7 +55,7 @@ export const CompaniesView = () => {
 
   useEffect(() => {
     fetchSuppliers();
-  }, []);
+  }, [userData?.companyId]); // Re-fetch when companyId changes
 
   const handleAction = (supplier: Supplier) => {
     console.log('Action clicked for supplier:', supplier);

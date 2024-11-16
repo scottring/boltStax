@@ -3,12 +3,14 @@ import { functions } from '../config/firebase';
 
 export interface EmailData {
   to: string;
-  template: 'SHEET_CREATED' | 'SHEET_REMINDER' | 'SHEET_SUBMITTED';
+  template: 'SHEET_CREATED' | 'SHEET_REMINDER' | 'SHEET_SUBMITTED' | 'SUPPLIER_INVITATION';
   data: {
     sheetName?: string;
     supplierName?: string;
     dueDate?: string;
     accessUrl?: string;
+    contactName?: string;
+    companyName?: string;
     [key: string]: any;
   };
 }

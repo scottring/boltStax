@@ -27,23 +27,40 @@ import {
   useColorModeValue
 } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
-import { Plus, MoreVertical, Send, Trash2 } from 'lucide-react';
+import { Plus, MoreVertical, Send, Trash2, FileText } from 'lucide-react';
 import type { ProductSheet } from '../../types/productSheet';
 import type { Supplier } from '../../types/supplier';
-import type { QuestionTag } from '../../types/question';
+import type { QuestionTag } from '../../types/questionnaire';
 import { getAllSheets, deleteSheet, sendSheet } from '../../services/productSheets';
 import { getSuppliers, getSupplier } from '../../services/suppliers';
 import { getTags } from '../../services/questions';
 import { CreateProductSheetModal } from './CreateProductSheetModal';
+import { ProductSheetView } from './ProductSheetView';
+import { useAuth } from '../../contexts/AuthContext';
 
-export const SupplierProductsView = () => {
-  const { isOpen, onOpen, onClose } = useDisclosure();
+interface SupplierProductsViewProps {
+  onNavigateToResponse: (productSheetId: string, supplierId: string) => void;
+}
+
+export const SupplierProductsView = ({ onNavigateToResponse }: SupplierProductsViewProps) => {
   const [sheets, setSheets] = useState<ProductSheet[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [tags, setTags] = useState<QuestionTag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedSheet, setSelectedSheet] = useState<ProductSheet | null>(null);
   const [error, setError] = useState<string | null>(null);
   const toast = useToast();
+  const { userData } = useAuth();
+  const { 
+    isOpen: isCreateModalOpen, 
+    onOpen: onCreateModalOpen, 
+    onClose: onCreateModalClose 
+  } = useDisclosure();
+  const {
+    isOpen: isViewModalOpen,
+    onOpen: onViewModalOpen,
+    onClose: onViewModalClose
+  } = useDisclosure();
 
   const tableBg = useColorModeValue('white', 'gray.800');
   const headerBg = useColorModeValue('gray.50', 'gray.700');
@@ -51,12 +68,13 @@ export const SupplierProductsView = () => {
   const hoverBg = useColorModeValue('gray.50', 'gray.700');
 
   const fetchData = async () => {
+    if (!userData) return;
+    
     setIsLoading(true);
     try {
-      setError(null);
       const [sheetsData, suppliersData, tagsData] = await Promise.all([
-        getAllSheets(),
-        getSuppliers(),
+        getAllSheets(userData.companyId),
+        getSuppliers(userData.companyId),
         getTags()
       ]);
       setSheets(sheetsData);
@@ -79,7 +97,7 @@ export const SupplierProductsView = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [userData]);
 
   const getSupplierName = async (supplierId: string): Promise<string> => {
     try {
@@ -96,7 +114,7 @@ export const SupplierProductsView = () => {
     }
   };
 
-  const getStatusColor = (status: ProductSheet['status']) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'draft':
         return 'gray';
@@ -111,9 +129,12 @@ export const SupplierProductsView = () => {
     }
   };
 
-  const handleDelete = async (sheetId: string) => {
+  const handleDelete = async (sheetId: string, e: React.MouseEvent) => {
+    if (!userData) return;
+    
+    e.stopPropagation();
     try {
-      await deleteSheet(sheetId);
+      await deleteSheet(sheetId, userData.companyId);
       toast({
         title: 'Sheet deleted successfully',
         status: 'success',
@@ -130,7 +151,8 @@ export const SupplierProductsView = () => {
     }
   };
 
-  const handleSend = async (sheetId: string) => {
+  const handleSend = async (sheetId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     try {
       await sendSheet(sheetId);
       toast({
@@ -150,6 +172,20 @@ export const SupplierProductsView = () => {
     }
   };
 
+  const handleViewResponse = (sheet: ProductSheet, e: React.MouseEvent) => {
+    e.stopPropagation();
+    onNavigateToResponse(sheet.id, sheet.supplierId);
+  };
+
+  const handleRowClick = (sheet: ProductSheet) => {
+    setSelectedSheet(sheet);
+    onViewModalOpen();
+  };
+
+  if (!userData) {
+    return null;
+  }
+
   return (
     <Box p={6}>
       <Flex justify="space-between" align="center" mb={6}>
@@ -158,7 +194,7 @@ export const SupplierProductsView = () => {
           <IconButton
             aria-label="Create new sheet"
             icon={<Plus size={18} />}
-            onClick={onOpen}
+            onClick={onCreateModalOpen}
             colorScheme="green"
             variant="ghost"
             size="sm"
@@ -213,7 +249,11 @@ export const SupplierProductsView = () => {
                 </Tr>
               ) : (
                 sheets.map((sheet) => (
-                  <Tr key={sheet.id} _hover={{ bg: hoverBg }}>
+                  <Tr 
+                    key={sheet.id} 
+                    _hover={{ bg: hoverBg, cursor: 'pointer' }}
+                    onClick={() => handleRowClick(sheet)}
+                  >
                     <Td py={3} fontSize="sm" fontWeight="medium">{sheet.name}</Td>
                     <Td py={3}>
                       <SupplierName supplierId={sheet.supplierId} getSupplierName={getSupplierName} />
@@ -253,10 +293,10 @@ export const SupplierProductsView = () => {
                       </Badge>
                     </Td>
                     <Td py={3} fontSize="xs" color="gray.600">
-                      {sheet.dueDate ? sheet.dueDate.toLocaleDateString() : '-'}
+                      {sheet.dueDate ? new Date(sheet.dueDate).toLocaleDateString() : '-'}
                     </Td>
                     <Td py={3} fontSize="xs" color="gray.600">
-                      {sheet.createdAt.toLocaleDateString()}
+                      {new Date(sheet.createdAt).toLocaleDateString()}
                     </Td>
                     <Td py={3}>
                       <Menu>
@@ -266,6 +306,7 @@ export const SupplierProductsView = () => {
                           variant="ghost"
                           size="xs"
                           _hover={{ bg: 'gray.100' }}
+                          onClick={(e) => e.stopPropagation()}
                         />
                         <MenuList 
                           shadow="lg" 
@@ -273,10 +314,20 @@ export const SupplierProductsView = () => {
                           py={1}
                           minW="150px"
                         >
+                          {sheet.status !== 'draft' && (
+                            <MenuItem
+                              icon={<FileText size={14} />}
+                              onClick={(e) => handleViewResponse(sheet, e)}
+                              fontSize="sm"
+                              py={2}
+                            >
+                              View Response
+                            </MenuItem>
+                          )}
                           {sheet.status === 'draft' && (
                             <MenuItem
                               icon={<Send size={14} />}
-                              onClick={() => handleSend(sheet.id)}
+                              onClick={(e) => handleSend(sheet.id, e)}
                               fontSize="sm"
                               py={2}
                             >
@@ -285,7 +336,7 @@ export const SupplierProductsView = () => {
                           )}
                           <MenuItem
                             icon={<Trash2 size={14} />}
-                            onClick={() => handleDelete(sheet.id)}
+                            onClick={(e) => handleDelete(sheet.id, e)}
                             color="red.500"
                             fontSize="sm"
                             py={2}
@@ -304,12 +355,22 @@ export const SupplierProductsView = () => {
       </Box>
 
       <CreateProductSheetModal
-        isOpen={isOpen}
-        onClose={onClose}
+        isOpen={isCreateModalOpen}
+        onClose={onCreateModalClose}
         onSheetCreated={fetchData}
         suppliers={suppliers}
         tags={tags}
+        companyId={userData.companyId}
       />
+
+      {selectedSheet && (
+        <ProductSheetView
+          isOpen={isViewModalOpen}
+          onClose={onViewModalClose}
+          sheet={selectedSheet}
+          tags={tags}
+        />
+      )}
     </Box>
   );
 };

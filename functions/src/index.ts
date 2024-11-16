@@ -6,18 +6,32 @@ admin.initializeApp();
 
 interface EmailData {
   to: string;
-  template: 'SHEET_CREATED' | 'SHEET_REMINDER' | 'SHEET_SUBMITTED';
+  template: 'SHEET_CREATED' | 'SHEET_REMINDER' | 'SHEET_SUBMITTED' | 'SUPPLIER_INVITATION';
   data: {
     sheetName?: string;
     supplierName?: string;
     dueDate?: string;
     accessUrl?: string;
     tempPassword?: string;
+    contactName?: string;
+    companyName?: string;
     [key: string]: any;
   };
 }
 
 const emailTemplates = {
+  SUPPLIER_INVITATION: {
+    subject: 'Invitation to Join BoltStax',
+    html: (data: EmailData['data']) => `
+      <h2>Hello ${data.contactName},</h2>
+      <p>You have been invited to join BoltStax as a supplier for ${data.companyName}.</p>
+      <p>Click the link below to create your account and get started:</p>
+      <a href="${data.accessUrl}" style="display:inline-block;background:#4CAF50;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;">
+        Accept Invitation
+      </a>
+      <p>If you have any questions, please contact your account manager.</p>
+    `
+  },
   SHEET_CREATED: {
     subject: 'New Product Sheet Questionnaire',
     html: (data: EmailData['data']) => `
