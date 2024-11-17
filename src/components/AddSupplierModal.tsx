@@ -16,11 +16,14 @@ import {
   useToast,
   useColorModeValue
 } from '@chakra-ui/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { SupplierInviteSchema } from '../types/supplier';
 import { inviteSupplier } from '../services/supplierInvitations';
 import { useAuth } from '../contexts/AuthContext';
+import { getTags } from '../services/tags';
+import { TagSelector } from './questions/TagSelector';
+import type { QuestionTag } from '../types/question';
 
 interface AddSupplierModalProps {
   isOpen: boolean;
@@ -33,16 +36,36 @@ export const AddSupplierModal = ({ isOpen, onClose, onSupplierAdded }: AddSuppli
   const { userData } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [availableTags, setAvailableTags] = useState<QuestionTag[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     contactName: '',
     primaryContact: '',
+    tags: [] as string[],
     notes: ''
   });
 
   const borderColor = useColorModeValue('gray.100', 'gray.600');
   const inputBg = useColorModeValue('white', 'gray.800');
   const labelColor = useColorModeValue('gray.700', 'gray.300');
+
+  useEffect(() => {
+    const loadTags = async () => {
+      try {
+        const tags = await getTags();
+        setAvailableTags(tags);
+      } catch (error) {
+        console.error('Error loading tags:', error);
+        toast({
+          title: 'Error loading tags',
+          description: error instanceof Error ? error.message : 'Failed to load tags',
+          status: 'error',
+          duration: 5000,
+        });
+      }
+    };
+    loadTags();
+  }, [toast]);
 
   const handleSubmit = async () => {
     if (!userData) {
@@ -82,7 +105,7 @@ export const AddSupplierModal = ({ isOpen, onClose, onSupplierAdded }: AddSuppli
       
       onSupplierAdded();
       onClose();
-      setFormData({ name: '', contactName: '', primaryContact: '', notes: '' });
+      setFormData({ name: '', contactName: '', primaryContact: '', tags: [], notes: '' });
     } catch (error) {
       toast({
         title: 'Error inviting supplier',
@@ -147,6 +170,15 @@ export const AddSupplierModal = ({ isOpen, onClose, onSupplierAdded }: AddSuppli
                 _focus={{ borderColor: 'green.500', boxShadow: 'none' }}
               />
               <FormErrorMessage fontSize="xs">{errors.primaryContact}</FormErrorMessage>
+            </FormControl>
+
+            <FormControl>
+              <FormLabel fontSize="sm" color={labelColor}>Required Question Tags</FormLabel>
+              <TagSelector
+                availableTags={availableTags}
+                selectedTagIds={formData.tags}
+                onChange={(tags) => setFormData(prev => ({ ...prev, tags }))}
+              />
             </FormControl>
 
             <FormControl isInvalid={!!errors.notes}>

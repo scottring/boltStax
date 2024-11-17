@@ -37,6 +37,7 @@ export const SupplierInviteSchema = z.object({
   name: z.string().min(1, "Company name is required"),
   contactName: z.string().min(1, "Contact name is required"),
   primaryContact: z.string().email("Invalid email address"),
+  tags: z.array(z.string()).default([]),
   notes: z.string().optional()
 });
 

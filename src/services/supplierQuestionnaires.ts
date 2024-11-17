@@ -6,10 +6,37 @@ import type {
   SubmissionStatus,
   DocumentSubmission
 } from '../types/questionnaire';
+import type { Question } from '../types/question';
 
 const QUESTIONNAIRES_COLLECTION = 'questionnaires';
 const SUBMISSIONS_COLLECTION = 'submissions';
 const TEMPLATES_COLLECTION = 'questionnaireTemplates';
+const QUESTIONS_COLLECTION = 'questions';
+
+export const getQuestionsByTags = async (tags: string[]): Promise<Question[]> => {
+  try {
+    // Query for questions that have any of the provided tags
+    const q = query(
+      collection(db, QUESTIONS_COLLECTION),
+      where('tags', 'array-contains-any', tags),
+      orderBy('createdAt', 'desc')
+    );
+    
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt.toDate(),
+      updatedAt: doc.data().updatedAt.toDate()
+    } as Question));
+  } catch (error) {
+    console.error('Error fetching questions by tags:', error);
+    if (error instanceof Error) {
+      throw new Error(`Failed to fetch questions by tags: ${error.message}`);
+    }
+    throw new Error('Failed to fetch questions by tags');
+  }
+};
 
 // Template Management
 export const saveQuestionnaireTemplate = async (

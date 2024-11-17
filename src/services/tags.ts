@@ -3,7 +3,7 @@ import { db } from '../config/firebase';
 import type { Tag } from '../types/tag';
 import { ensureTagColor } from '../types/tag';
 
-const TAGS_COLLECTION = 'tags';
+const TAGS_COLLECTION = 'questionTags';
 
 export const getTags = async (): Promise<Tag[]> => {
   try {

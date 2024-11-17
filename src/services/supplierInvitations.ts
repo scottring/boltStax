@@ -23,7 +23,8 @@ export const inviteSupplier = async (invite: SupplierInvite, companyId: string):
       createdAt: Timestamp.fromDate(now),
       status: 'pending',
       role: 'supplier',
-      notes: invite.notes
+      notes: invite.notes,
+      tags: invite.tags // Store the tags with the invitation
     });
 
     // Generate invitation URL with the invite code
