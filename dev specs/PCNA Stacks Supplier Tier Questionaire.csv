@@ -1,0 +1,210 @@
+﻿,,
+,"General Vendor -, Factory - and Contact Information",
+,,
+Questionnaire 1,,
+Tier 1,Vendor or Trader ,
+Tier 1 Defined,"This Tier 1 Contact Information Questionnaire is solely intended for partners that PCNA directly conducts business with. If a vendor's corporate address is the same location of manufacturing, than the vendor and factory are both tier 1. A vendor might have multiple factories, which makes the vendor tier 1, but the factories tier 2. The vendor becomes tier 2 only when a trader partners with a vendor to sell the goods. Then the trader is tier 1, the vendor is tier 2, and the factory is tier 2 or 3. ",
+Section 1,Vendor or Trader Details ,Drop Down or Open Response - If Applicable 
+Tier 1,Vendor Number,Open Response
+Tier 1,Vendor English Name,Open Response
+Tier 1,English Address,Open Response
+Tier 1,Vendor Local Name,Open Response
+Tier 1,Local Address,Open Response
+Tier 1,City,Open Response
+Tier 1,Region,Open Response
+Tier 1,Province,Open Response
+Tier 1,Country,Open Response
+Tier 1,Postal Code,Open Response
+Tier 1,Vendor Classification,"Drop Down (Factory, etc.)"
+Tier 1,Vendor Type,"Drop Down (Inline, etc. )"
+Tier 1,Telephone,Open Response
+Tier 1,Fax,Open Response
+Tier 1,PO Email,Open Response
+Tier 1,Website Address,Open Response
+Tier 1,Business Reg.#:,Open Response
+,,
+Section 2,Vendor or Trader Contact ,Drop Down or Open Response - If Applicable 
+Tier 1,Document Completed by (Name),Open Response
+Tier 1,Position,Open Response
+Tier 1,Telephone No. ,Open Response
+Tier 1,Mobile No. ,Open Response
+Tier 1,Fax No. ,Open Response
+Tier 1,Email,Open Response
+,,
+Questionnaire 2,,
+Tier 2,"Vendor, Factory,  and can also include Packaging and Material  Suppliers if the vendor and factory (tier 1) share the same address",
+Tier 2 Defined,"This Tier 2 Contact Information Questionnaire is solely intended for partners once removed from the tier 1 supplier and are normally the finished goods assemblers. When the vendor has multiple factories and the manufacturing address is different than the vendor's corporate address, this makes the factories tier 2.  When a vendor shares the same address as the factory, than the material/packaging suppliers are tier 2. The vendor becomes tier 2 only when a trader partners with a vendor to sell the goods. Then the trader is tier 1 and the vendor is tier 2, and the material/packaging suppliers are tier 3. ",
+Section 1,Factory 1 Details,Drop Down or Open Response - If Applicable 
+Tier 2,Factory Number,Open Response
+Tier 3,Factory English Name ,Open Response
+Tier 4,Factory English Address,Open Response
+Tier 5,Factory Local Name ,Open Response
+Tier 6,Factory Local Address,Open Response
+Tier 7,City,Open Response
+Tier 8,Region,Open Response
+Tier 9,Province,Open Response
+Tier 10,Country,Open Response
+Tier 11,Postal Code,Open Response
+Tier 12,Telephone,Open Response
+Tier 13,Fax,Open Response
+Tier 14,Email,Open Response
+Tier 15,Port Of Loading (Ocean),Open Response
+Tier 16,Port Of Loading (Air),Open Response
+Tier 17,Business Reg.#,Open Response
+Tier 18,Inspection address,Open Response
+Tier 19,Last Audit Type,"Drop Down Below:
+-BSCI by Amfori - Grade C or better
+-SMETA by SEDEX – 4 Pillar Only 
+-SA8000 by SAI 
+-Better Work by ILO (Internation Labor Organization) – apparel only
+-WRAP (Worldwide Responsible Accredited Production) – apparel, footwear, and sewn products sectors
+-WCA (Workplace Conditions Assessment) by Intertek 
+-ERSA (Ethical Responsible Sourcing Assessment) by LRQA"
+Tier 20,Last Audit Date,Open Response
+,,
+Section 2,Factory 1 Contact ,Drop Down or Open Response - If Applicable 
+Tier 23,Document Completed by (Name),Open Response
+Tier 24,Position,Open Response
+Tier 25,Telephone No. ,Open Response
+Tier 26,Mobile No. ,Open Response
+Tier 27,Fax No. ,Open Response
+Tier 28,Email,Open Response
+,,
+Questionnaire 3,,
+Tier 3,"Packaging and Material, can also include Factory if Tier 1 is a trader    
+(include the material of all components that  materially influence the product or packaging)",
+Tier 3 Defined,"This Tier 3 Contact Information Questionnaire is solely intended for partners twice removed from the tier 1 supplier and are normally where the materials take shape. When the vendor has multiple factories and the manufacturing address is different than the vendor's corporate address, this makes the material/packaging suppliers tier 3.  When a vendor shares the same address as the factory, than the material/packaging suppliers are tier 2 and the raw material aids are tier 3. When a trader is tier 1, the factory can be tier 3. ",
+Section 1,Packaging Supplier 1 Details,Drop Down or Open Response - If Applicable 
+Tier 3,Packaging Type,"Drop Down Below:
+Primary Packaging (Including: bottles, containers, cans, tubes, and jars containing liquid or soild products, Flexible Polybags and Pouches, Gift Boxes)
+Secondary Packaging (Including: carton, cardboard, corrugated, plastic and rigid boxes, shrink wrap/sleeves, multipacks, protective packaging)
+Labels and Tags (Including: hangtag and woven labels)"
+Tier 3,Supplier English Name ,Open Response
+Tier 3,Supplier English Address,Open Response
+Tier 3,Supplier Local Name ,Open Response
+Tier 3,Supplier Local Address,Open Response
+Tier 3,City,Open Response
+Tier 3,Region,Open Response
+Tier 3,Province,Open Response
+Tier 3,Country,Open Response
+Tier 3,Postal Code,Open Response
+Tier 3,Telephone,Open Response
+Tier 3,Fax,Open Response
+Tier 3,Email,Open Response
+Tier 3,Business Reg.#,Open Response
+Tier 3,Inspection address,Open Response
+Tier 3,Last Audit Type,"Drop Down Below:
+-BSCI by Amfori - Grade C or better
+-SMETA by SEDEX – 4 Pillar Only 
+-SA8000 by SAI 
+-Better Work by ILO (Internation Labor Organization) – apparel only
+-WRAP (Worldwide Responsible Accredited Production) – apparel, footwear, and sewn products sectors
+-WCA (Workplace Conditions Assessment) by Intertek 
+-ERSA (Ethical Responsible Sourcing Assessment) by LRQA"
+Tier 3,Last Audit Date,Open Response
+,,
+Section 2,Packaging Supplier 1  Contact  ,Drop Down or Open Response - If Applicable 
+Tier 3,Document Completed by (Name),Open Response
+Tier 3,Position,Open Response
+Tier 3,Telephone No. ,Open Response
+Tier 3,Mobile No. ,Open Response
+Tier 3,Fax No. ,Open Response
+Tier 3,Email,Open Response
+,,
+Section 3,Material Supplier 1  Details,Drop Down or Open Response - If Applicable 
+Tier 3,Material Type,"Drop Down Below:
+Plastic
+Metal
+Glass
+Paper, Paperboard, and Pulp Materials
+Wood
+Textile
+Textile - Cotton 
+Composites
+Ceramics
+Rubber
+Foams
+Bio-based Materials (Including natural and plant based fibers)
+Metallized Materials (Including aluminum foil, metallized polyester, and coated metals)
+Specialty Materials (Including conductive material for electronics, magnetic material for fastening)
+"
+Tier 3,Factory Number,Open Response
+Tier 3,Factory English Name ,Open Response
+Tier 3,Factory English Address,Open Response
+Tier 3,Factory Local Name ,Open Response
+Tier 3,Factory Local Address,Open Response
+Tier 3,City,Open Response
+Tier 3,Region,Open Response
+Tier 3,Province,Open Response
+Tier 3,Country,Open Response
+Tier 3,Postal Code,Open Response
+Tier 3,Telephone,Open Response
+Tier 3,Fax,Open Response
+Tier 3,Email,Open Response
+Tier 3,Port Of Loading (Ocean),Open Response
+Tier 3,Port Of Loading (Air),Open Response
+Tier 3,Business Reg.#,Open Response
+Tier 3,Inspection address,Open Response
+Tier 3,Last Audit Type,"Drop Down Below:
+-BSCI by Amfori - Grade C or better
+-SMETA by SEDEX – 4 Pillar Only 
+-SA8000 by SAI 
+-Better Work by ILO (Internation Labor Organization) – apparel only
+-WRAP (Worldwide Responsible Accredited Production) – apparel, footwear, and sewn products sectors
+-WCA (Workplace Conditions Assessment) by Intertek 
+-ERSA (Ethical Responsible Sourcing Assessment) by LRQA"
+Tier 3,Last Audit Date,Open Response
+,,
+Section 4,Material Supplier 1  Contact,Drop Down or Open Response - If Applicable 
+Tier 3,Document Completed by (Name),Open Response
+Tier 3,Position,Open Response
+Tier 3,Telephone No. ,Open Response
+Tier 3,Mobile No. ,Open Response
+Tier 3,Fax No. ,Open Response
+Tier 3,Email,Open Response
+,,
+Questionnaire 4,,
+Tier 4,"Coating, Finishing, Processing Aid, Fabric Mill / Farm",
+Tier 4 Defined,"This Tier 4 Contact Information Questionnaire is solely intended for partners that provide raw material that contribute to the material taking shape or achieving certain durability, color, or claim functions. ",
+Section 1,Supplier 1 Details ,Drop Down or Open Response - If Applicable 
+Tier 4,"Coating, Finishing, and Processing Aid:","Drop Down Below:
+Coatings (Including paint, varnishes, stains, lacquers, powder coatings, specialty coatings such as UV-Resistant Coatings or Fire-Retardant Coatings)
+Finishing Techniques (Including Surface Treatments, Plating, Anodizing (for aluminum), Laser Finishing, Etching, Printing Finishes, Textile Finishing (dyeing, waterproofing, and wrinkle resistance)
+Processing Aids (Including Lubricants, Release Agents, Additives, Surfactants, Thickeners, Foaming Agents, Filler Materials)
+Sealants and Adhesives 
+Protective Films and Barriers (Including Shrink Films, Protective Laminates, and Barrier Coatings (for moisture, gas)
+Functional Coatings with Specail Features (Including Functional Antimicrobial and Hydrophobic/Water Resistant, and Stain Resistant)"
+Tier 4,Factory Number,Open Response
+Tier 4,Factory English Name ,Open Response
+Tier 4,Factory English Address,Open Response
+Tier 4,Factory Local Name ,Open Response
+Tier 4,Factory Local Address,Open Response
+Tier 4,City,Open Response
+Tier 4,Region,Open Response
+Tier 4,Province,Open Response
+Tier 4,Country,Open Response
+Tier 4,Postal Code,Open Response
+Tier 4,Telephone,Open Response
+Tier 4,Fax,Open Response
+Tier 4,Email,Open Response
+Tier 4,Port Of Loading (Ocean),Open Response
+Tier 4,Port Of Loading (Air),Open Response
+Tier 4,Business Reg.#,Open Response
+Tier 4,Inspection address,Open Response
+Tier 4,Last Audit Type,"Drop Down Below:
+-BSCI by Amfori - Grade C or better
+-SMETA by SEDEX – 4 Pillar Only 
+-SA8000 by SAI 
+-Better Work by ILO (Internation Labor Organization) – apparel only
+-WRAP (Worldwide Responsible Accredited Production) – apparel, footwear, and sewn products sectors
+-WCA (Workplace Conditions Assessment) by Intertek 
+-ERSA (Ethical Responsible Sourcing Assessment) by LRQA"
+Tier 4,Last Audit Date,Open Response
+,,
+Section 2,Supplier 1 Contact ,Drop Down or Open Response - If Applicable 
+Tier 4,Document Completed by (Name),Open Response
+Tier 4,Position,Open Response
+Tier 4,Telephone No. ,Open Response
+Tier 4,Mobile No. ,Open Response
+Tier 4,Fax No. ,Open Response
+Tier 4,Email,Open Response

@@ -1,4 +1,4 @@
-import { collection, addDoc, getDocs, query, where, orderBy, Timestamp, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, orderBy, Timestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import type { SupplierInvite, Supplier } from '../types/supplier';
 import { sendEmail } from './email';
@@ -29,6 +29,7 @@ const convertFromFirestoreData = (id: string, data: any): Supplier => ({
 });
 
 export const inviteSupplier = async (invite: SupplierInvite): Promise<Supplier> => {
+  let docRef;
   try {
     const now = new Date();
     const newSupplier = {
@@ -50,29 +51,48 @@ export const inviteSupplier = async (invite: SupplierInvite): Promise<Supplier> 
       invitationSentDate: Timestamp.fromDate(now)
     };
 
-    // Create supplier record
-    const docRef = await addDoc(collection(db, SUPPLIERS_COLLECTION), supplierData);
+    // Create supplier record with pending status
+    docRef = await addDoc(collection(db, SUPPLIERS_COLLECTION), supplierData);
     
     // Generate invitation URL
     const inviteUrl = `${window.location.origin}?invite=${docRef.id}`;
 
     // Send invitation email
-    await sendEmail({
-      to: invite.primaryContact,
-      template: 'SUPPLIER_INVITATION',
-      data: {
-        contactName: invite.contactName,
-        companyName: invite.name,
-        accessUrl: inviteUrl
-      }
-    });
+    try {
+      await sendEmail({
+        to: invite.primaryContact,
+        template: 'SUPPLIER_INVITATION',
+        data: {
+          contactName: invite.contactName,
+          companyName: invite.name,
+          accessUrl: inviteUrl
+        }
+      });
 
-    return {
-      id: docRef.id,
-      ...newSupplier
-    };
+      // Update status to invitation_sent only after email is successfully sent
+      await updateDoc(doc(db, SUPPLIERS_COLLECTION, docRef.id), {
+        status: 'invitation_sent',
+        lastUpdated: Timestamp.fromDate(new Date())
+      });
+
+      return {
+        id: docRef.id,
+        ...newSupplier,
+        status: 'invitation_sent'
+      };
+    } catch (emailError) {
+      // If email fails, delete the supplier record to maintain consistency
+      if (docRef) {
+        await deleteDoc(doc(db, SUPPLIERS_COLLECTION, docRef.id));
+      }
+      throw emailError;
+    }
   } catch (error) {
     console.error('Error inviting supplier:', error);
+    // Clean up supplier record if it was created but something else failed
+    if (docRef && error instanceof Error && error.message.includes('Email')) {
+      await deleteDoc(doc(db, SUPPLIERS_COLLECTION, docRef.id));
+    }
     if (error instanceof Error) {
       throw new Error(`Failed to invite supplier: ${error.message}`);
     }

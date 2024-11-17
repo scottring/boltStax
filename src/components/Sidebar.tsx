@@ -1,8 +1,9 @@
 import { Box, VStack, Icon, Text, Flex, useColorModeValue, Image, IconButton } from '@chakra-ui/react';
-import { FiUsers, FiList, FiPackage, FiShoppingBag, FiFileText, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiUsers, FiList, FiPackage, FiShoppingBag, FiFileText, FiChevronLeft, FiChevronRight, FiLogOut, FiLogIn, FiUser } from 'react-icons/fi';
 import logo from '../assets/logo.svg';
 import icon from '../assets/icon.svg';
 import { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 export type ViewType = 'mySuppliers' | 'questions' | 'supplierProducts' | 'customerProducts' | 'templates' | 'questionnaireResponse';
 
@@ -14,18 +15,20 @@ interface SidebarProps {
 
 interface NavItemProps {
   icon: any;
-  children: string;
+  children: string | React.ReactNode;
   isActive?: boolean;
   onClick: () => void;
   disabled?: boolean;
   isCollapsed?: boolean;
+  subText?: string;
 }
 
-const NavItem = ({ icon, children, isActive, onClick, disabled, isCollapsed }: NavItemProps) => {
+const NavItem = ({ icon, children, isActive, onClick, disabled, isCollapsed, subText }: NavItemProps) => {
   const activeBg = useColorModeValue('gray.100', 'gray.700');
   const hoverBg = useColorModeValue('gray.100', 'gray.700');
   const color = useColorModeValue('gray.700', 'gray.200');
   const disabledColor = useColorModeValue('gray.400', 'gray.600');
+  const subTextColor = useColorModeValue('gray.500', 'gray.400');
 
   return (
     <Flex
@@ -42,9 +45,18 @@ const NavItem = ({ icon, children, isActive, onClick, disabled, isCollapsed }: N
       justify={isCollapsed ? "center" : "flex-start"}
     >
       <Icon as={icon} fontSize="16" />
-      {!isCollapsed && <Text ml="3" fontSize="sm" fontWeight={isActive ? 'medium' : 'normal'}>
-        {children}
-      </Text>}
+      {!isCollapsed && (
+        <Flex direction="column" ml="3">
+          <Text fontSize="sm" fontWeight={isActive ? 'medium' : 'normal'}>
+            {children}
+          </Text>
+          {subText && (
+            <Text fontSize="xs" color={subTextColor}>
+              {subText}
+            </Text>
+          )}
+        </Flex>
+      )}
     </Flex>
   );
 };
@@ -53,6 +65,16 @@ export const Sidebar = ({ onNavigate, currentView, hasSuppliers }: SidebarProps)
   const [isCollapsed, setIsCollapsed] = useState(false);
   const bg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
+  const { currentUser, userData, signOut } = useAuth();
+
+  const handleAuthClick = async () => {
+    if (currentUser) {
+      await signOut();
+      window.location.href = '/login';
+    } else {
+      window.location.href = '/login';
+    }
+  };
 
   return (
     <Box
@@ -103,7 +125,7 @@ export const Sidebar = ({ onNavigate, currentView, hasSuppliers }: SidebarProps)
           zIndex="1"
         />
 
-        <VStack spacing="1" align="stretch" px={isCollapsed ? "0" : "2"} mt="4">
+        <VStack spacing="1" align="stretch" px={isCollapsed ? "0" : "2"} mt="4" flex="1">
           <NavItem
             icon={FiUsers}
             isActive={currentView === 'mySuppliers'}
@@ -149,6 +171,17 @@ export const Sidebar = ({ onNavigate, currentView, hasSuppliers }: SidebarProps)
           >
             Templates
           </NavItem>
+
+          <Box mt="auto" mb="4">
+            <NavItem
+              icon={currentUser ? FiUser : FiLogIn}
+              onClick={handleAuthClick}
+              isCollapsed={isCollapsed}
+              subText={currentUser && userData ? userData.email : undefined}
+            >
+              {currentUser && userData ? userData.name : 'Login'}
+            </NavItem>
+          </Box>
         </VStack>
       </Flex>
     </Box>

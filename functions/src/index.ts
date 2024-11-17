@@ -1,8 +1,22 @@
-import { onCall } from 'firebase-functions/v2/https';
+import { onCall, HttpsOptions } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import * as sgMail from '@sendgrid/mail';
+import { defineSecret } from 'firebase-functions/params';
 
 admin.initializeApp();
+
+// Define secrets
+const sendgridKey = defineSecret('SENDGRID_KEY');
+const sendgridFromEmail = defineSecret('SENDGRID_FROM_EMAIL');
+
+// Function configuration
+const functionConfig: HttpsOptions = {
+  memory: '256MiB',
+  timeoutSeconds: 30,
+  cors: true,
+  maxInstances: 10,
+  secrets: [sendgridKey, sendgridFromEmail]
+};
 
 interface EmailData {
   to: string;
@@ -70,24 +84,22 @@ const emailTemplates = {
   }
 };
 
-export const sendEmail = onCall<EmailData>(async (request) => {
+export const sendEmail = onCall<EmailData>(functionConfig, async (request) => {
   try {
     const data = request.data;
     
-    // Initialize SendGrid with the API key from environment variables
-    const sendgridKey = process.env.SENDGRID_KEY;
-    const fromEmail = process.env.SENDGRID_FROM_EMAIL;
+    // Get SendGrid configuration from secrets
+    const key = sendgridKey.value();
+    const fromEmail = sendgridFromEmail.value();
 
     // Validate SendGrid configuration
-    if (!sendgridKey || !fromEmail) {
+    if (!key || !fromEmail) {
       console.error('Missing SendGrid configuration:', { 
-        hasKey: !!sendgridKey, 
-        hasFromEmail: !!fromEmail 
+        hasKey: !!key, 
+        hasFromEmail: !!fromEmail
       });
       throw new Error('SendGrid configuration is missing');
     }
-
-    sgMail.setApiKey(sendgridKey);
 
     // Validate input data
     if (!data.to || !data.template || !data.data) {
@@ -110,35 +122,51 @@ export const sendEmail = onCall<EmailData>(async (request) => {
       throw new Error('Invalid recipient email address');
     }
 
-    console.log('Sending email:', {
-      to: data.to,
-      template: data.template,
-      data: { ...data.data, accessUrl: '[REDACTED]' }
-    });
+    // Configure SendGrid
+    sgMail.setApiKey(key);
 
-    // Send email
+    // Prepare email message
     const msg = {
       to: data.to,
-      from: fromEmail,
+      from: {
+        email: fromEmail,
+        name: 'BoltStax'
+      },
       subject: template.subject,
       html: template.html(data.data),
+      mailSettings: {
+        sandboxMode: {
+          enable: false
+        }
+      }
     };
 
-    await sgMail.send(msg);
-    
-    console.log('Email sent successfully');
+    // Send email asynchronously without waiting for response
+    sgMail.send(msg)
+      .then(([response]) => {
+        console.log('SendGrid send successful:', {
+          statusCode: response.statusCode,
+          messageId: response.headers['x-message-id'],
+        });
+      })
+      .catch(error => {
+        console.error('SendGrid send error:', {
+          error: error,
+          response: error.response?.body,
+          code: error.code,
+          message: error.message
+        });
+      });
+
+    // Return success immediately
     return { success: true };
   } catch (error: any) {
-    console.error('Error sending email:', error);
-    
-    // Enhanced error logging
-    if (error.response) {
-      console.error('SendGrid API Error:', {
-        statusCode: error.response.statusCode,
-        body: error.response.body,
-        headers: error.response.headers
-      });
-    }
+    console.error('Error in sendEmail function:', {
+      error: error,
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    });
     
     throw new Error(error instanceof Error ? error.message : 'Failed to send email');
   }
