@@ -1,61 +1,33 @@
-import { collection, addDoc, getDocs, query, where, orderBy, Timestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, deleteDoc, setDoc, getDoc, arrayUnion, Timestamp, writeBatch } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import type { SupplierInvite, Supplier } from '../types/supplier';
+import type { SupplierInvite } from '../types/supplier';
 import { sendEmail } from './email';
+import { v4 as uuidv4 } from 'uuid';
 
-const SUPPLIERS_COLLECTION = 'suppliers';
+const COMPANIES_COLLECTION = 'companies';
+const INVITES_COLLECTION = 'invites';
 
-const convertFromFirestoreData = (id: string, data: any): Supplier => ({
-  id,
-  name: data.name,
-  contactName: data.contactName,
-  primaryContact: data.primaryContact,
-  taskProgress: data.taskProgress,
-  status: data.status,
-  complianceScore: data.complianceScore,
-  lastUpdated: data.lastUpdated.toDate(),
-  invitationSentDate: data.invitationSentDate?.toDate(),
-  registrationDate: data.registrationDate?.toDate(),
-  lastLoginDate: data.lastLoginDate?.toDate(),
-  pendingRequests: data.pendingRequests,
-  completedRequests: data.completedRequests,
-  tags: data.tags,
-  notes: data.notes,
-  complianceHistory: data.complianceHistory.map((record: any) => ({
-    date: record.date.toDate(),
-    score: record.score,
-    category: record.category
-  }))
-});
-
-export const inviteSupplier = async (invite: SupplierInvite): Promise<Supplier> => {
-  let docRef;
+export const inviteSupplier = async (invite: SupplierInvite, companyId: string): Promise<void> => {
+  let inviteCode;
+  
   try {
     const now = new Date();
-    const newSupplier = {
-      ...invite,
-      taskProgress: 0,
-      status: 'pending_invitation' as const,
-      lastUpdated: now,
-      invitationSentDate: now,
-      pendingRequests: 0,
-      completedRequests: 0,
-      tags: [],
-      complianceScore: 0,
-      complianceHistory: []
-    };
+    inviteCode = uuidv4(); // Generate unique invite code
 
-    const supplierData = {
-      ...newSupplier,
-      lastUpdated: Timestamp.fromDate(now),
-      invitationSentDate: Timestamp.fromDate(now)
-    };
+    // Store invitation data in invites collection
+    await setDoc(doc(db, INVITES_COLLECTION, inviteCode), {
+      invitingCompanyId: companyId,
+      email: invite.primaryContact,
+      name: invite.name,
+      contactName: invite.contactName,
+      createdAt: Timestamp.fromDate(now),
+      status: 'pending',
+      role: 'supplier',
+      notes: invite.notes
+    });
 
-    // Create supplier record with pending status
-    docRef = await addDoc(collection(db, SUPPLIERS_COLLECTION), supplierData);
-    
-    // Generate invitation URL
-    const inviteUrl = `${window.location.origin}?invite=${docRef.id}`;
+    // Generate invitation URL with the invite code
+    const inviteUrl = `${window.location.origin}/signup?invite=${inviteCode}`;
 
     // Send invitation email
     try {
@@ -68,31 +40,19 @@ export const inviteSupplier = async (invite: SupplierInvite): Promise<Supplier> 
           accessUrl: inviteUrl
         }
       });
-
-      // Update status to invitation_sent only after email is successfully sent
-      await updateDoc(doc(db, SUPPLIERS_COLLECTION, docRef.id), {
-        status: 'invitation_sent',
-        lastUpdated: Timestamp.fromDate(new Date())
-      });
-
-      return {
-        id: docRef.id,
-        ...newSupplier,
-        status: 'invitation_sent'
-      };
     } catch (emailError) {
-      // If email fails, delete the supplier record to maintain consistency
-      if (docRef) {
-        await deleteDoc(doc(db, SUPPLIERS_COLLECTION, docRef.id));
+      // Clean up if email fails
+      if (inviteCode) {
+        await deleteDoc(doc(db, INVITES_COLLECTION, inviteCode));
       }
       throw emailError;
     }
   } catch (error) {
-    console.error('Error inviting supplier:', error);
-    // Clean up supplier record if it was created but something else failed
-    if (docRef && error instanceof Error && error.message.includes('Email')) {
-      await deleteDoc(doc(db, SUPPLIERS_COLLECTION, docRef.id));
+    // Clean up on any error
+    if (inviteCode) {
+      await deleteDoc(doc(db, INVITES_COLLECTION, inviteCode));
     }
+    console.error('Error inviting supplier:', error);
     if (error instanceof Error) {
       throw new Error(`Failed to invite supplier: ${error.message}`);
     }
@@ -100,49 +60,49 @@ export const inviteSupplier = async (invite: SupplierInvite): Promise<Supplier> 
   }
 };
 
-export const getPendingInvitations = async (): Promise<Supplier[]> => {
+export const getInviteData = async (inviteCode: string) => {
   try {
-    const q = query(
-      collection(db, SUPPLIERS_COLLECTION),
-      where('status', '==', 'pending_invitation'),
-      orderBy('invitationSentDate', 'desc')
-    );
-    const querySnapshot = await getDocs(q);
+    const inviteDocRef = doc(db, INVITES_COLLECTION, inviteCode);
+    const inviteSnapshot = await getDoc(inviteDocRef);
     
-    return querySnapshot.docs.map(doc => 
-      convertFromFirestoreData(doc.id, doc.data())
-    );
-  } catch (error) {
-    console.error('Error fetching pending invitations:', error);
-    if (error instanceof Error) {
-      throw new Error(`Failed to fetch pending invitations: ${error.message}`);
+    if (!inviteSnapshot.exists()) {
+      throw new Error('Invalid invitation code');
     }
-    throw new Error('Failed to fetch pending invitations');
+
+    return inviteSnapshot.data();
+  } catch (error) {
+    console.error('Error fetching invite data:', error);
+    if (error instanceof Error) {
+      throw new Error(`Failed to fetch invite data: ${error.message}`);
+    }
+    throw new Error('Failed to fetch invite data');
   }
 };
 
-export const updateInvitationStatus = async (
-  supplierId: string, 
-  status: 'pending_invitation' | 'invitation_sent' | 'registered' | 'active' | 'inactive'
-): Promise<void> => {
+export const addSupplierToCompany = async (customerCompanyId: string, supplierCompanyId: string): Promise<void> => {
   try {
-    const docRef = doc(db, SUPPLIERS_COLLECTION, supplierId);
-    const updateData: Record<string, any> = {
-      status,
-      lastUpdated: Timestamp.fromDate(new Date())
-    };
+    const batch = writeBatch(db);
+    const customerRef = doc(db, COMPANIES_COLLECTION, customerCompanyId);
+    const supplierRef = doc(db, COMPANIES_COLLECTION, supplierCompanyId);
 
-    // Add registration date if supplier is being registered
-    if (status === 'registered') {
-      updateData.registrationDate = Timestamp.fromDate(new Date());
-    }
+    // Add supplier to customer's suppliers array
+    batch.update(customerRef, {
+      suppliers: arrayUnion(supplierCompanyId),
+      updatedAt: Timestamp.now()
+    });
 
-    await updateDoc(docRef, updateData);
+    // Add customer to supplier's customers array
+    batch.update(supplierRef, {
+      customers: arrayUnion(customerCompanyId),
+      updatedAt: Timestamp.now()
+    });
+
+    await batch.commit();
   } catch (error) {
-    console.error('Error updating invitation status:', error);
+    console.error('Error adding supplier relationship:', error);
     if (error instanceof Error) {
-      throw new Error(`Failed to update invitation status: ${error.message}`);
+      throw new Error(`Failed to add supplier relationship: ${error.message}`);
     }
-    throw new Error('Failed to update invitation status');
+    throw new Error('Failed to add supplier relationship');
   }
 };

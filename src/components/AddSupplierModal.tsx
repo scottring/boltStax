@@ -20,15 +20,17 @@ import { useState } from 'react';
 import { z } from 'zod';
 import { SupplierInviteSchema } from '../types/supplier';
 import { inviteSupplier } from '../services/supplierInvitations';
+import { useAuth } from '../contexts/AuthContext';
 
 interface AddSupplierModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSupplierAdded: (supplierId: string) => void;
+  onSupplierAdded: () => void;
 }
 
 export const AddSupplierModal = ({ isOpen, onClose, onSupplierAdded }: AddSupplierModalProps) => {
   const toast = useToast();
+  const { userData } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
@@ -43,6 +45,16 @@ export const AddSupplierModal = ({ isOpen, onClose, onSupplierAdded }: AddSuppli
   const labelColor = useColorModeValue('gray.700', 'gray.300');
 
   const handleSubmit = async () => {
+    if (!userData) {
+      toast({
+        title: 'Authentication Error',
+        description: 'You must be logged in to invite suppliers',
+        status: 'error',
+        duration: 5000,
+      });
+      return;
+    }
+
     setIsLoading(true);
     setErrors({});
 
@@ -59,7 +71,7 @@ export const AddSupplierModal = ({ isOpen, onClose, onSupplierAdded }: AddSuppli
         return;
       }
 
-      const createdSupplier = await inviteSupplier(formData);
+      await inviteSupplier(formData, userData.companyId);
       
       toast({
         title: 'Supplier invitation sent',
@@ -68,7 +80,7 @@ export const AddSupplierModal = ({ isOpen, onClose, onSupplierAdded }: AddSuppli
         duration: 3000,
       });
       
-      onSupplierAdded(createdSupplier.id);
+      onSupplierAdded();
       onClose();
       setFormData({ name: '', contactName: '', primaryContact: '', notes: '' });
     } catch (error) {

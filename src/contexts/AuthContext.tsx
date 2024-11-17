@@ -8,12 +8,13 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
+import { getInviteData, addSupplierToCompany } from '../services/supplierInvitations';
 
 interface UserData {
   id: string;
   email: string;
   companyId: string;
-  role: 'admin' | 'user';
+  role: 'admin' | 'user' | 'supplier';
   name: string;
 }
 
@@ -22,7 +23,7 @@ interface AuthContextType {
   userData: UserData | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, name: string, inviteToken?: string) => Promise<void>;
+  signUp: (email: string, password: string, name: string, inviteCode?: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -61,55 +62,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signInWithEmailAndPassword(auth, email, password);
   };
 
-  const signUp = async (email: string, password: string, name: string, inviteToken?: string) => {
-    // Create the user account
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-
+  const signUp = async (email: string, password: string, name: string, inviteCode?: string) => {
     let companyId: string;
-    let role: 'admin' | 'user';
+    let role: 'admin' | 'user' | 'supplier';
+    let userCredential;
 
-    if (inviteToken) {
-      // Verify invite token and get company information
-      const inviteDoc = await getDoc(doc(db, 'invites', inviteToken));
-      if (!inviteDoc.exists()) {
-        throw new Error('Invalid invite token');
+    if (inviteCode) {
+      // Verify invite code and get invitation data
+      const inviteData = await getInviteData(inviteCode);
+      
+      if (!inviteData) {
+        throw new Error('Invalid invite code');
       }
 
-      const inviteData = inviteDoc.data();
       if (inviteData.email !== email) {
         throw new Error('Email does not match invitation');
       }
 
-      companyId = inviteData.companyId;
+      // Create new company for the invited user
+      userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      companyId = userCredential.user.uid;
       role = inviteData.role;
+
+      // Create company document
+      await setDoc(doc(db, 'companies', companyId), {
+        name: inviteData.name,
+        createdAt: Timestamp.now(),
+        createdBy: userCredential.user.uid,
+        contactName: inviteData.contactName,
+        email: email,
+        suppliers: [], // Companies they supply to
+        customers: [], // Companies they buy from
+        notes: inviteData.notes
+      });
+
+      // Add relationship between companies
+      await addSupplierToCompany(inviteData.invitingCompanyId, companyId);
     } else {
-      // Create new company for self-registration
-      const companyDoc = await setDoc(doc(db, 'companies', user.uid), {
+      // Self-registration creates a new company
+      userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      companyId = userCredential.user.uid;
+      role = 'admin';
+
+      // Create new company
+      await setDoc(doc(db, 'companies', companyId), {
         name: `${name}'s Company`,
         createdAt: Timestamp.now(),
-        createdBy: user.uid
+        createdBy: userCredential.user.uid,
+        suppliers: [], // Companies they supply to
+        customers: [], // Companies they buy from
       });
-      companyId = user.uid;
-      role = 'admin';
     }
 
     // Create user profile
-    await setDoc(doc(db, 'users', user.uid), {
+    await setDoc(doc(db, 'users', userCredential.user.uid), {
       email,
       name,
       companyId,
       role,
       createdAt: Timestamp.now()
     });
-
-    // If this was an invite, mark it as used
-    if (inviteToken) {
-      await setDoc(doc(db, 'invites', inviteToken), {
-        usedAt: Timestamp.now(),
-        usedBy: user.uid
-      }, { merge: true });
-    }
   };
 
   const signOut = async () => {

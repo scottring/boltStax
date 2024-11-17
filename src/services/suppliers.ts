@@ -1,137 +1,78 @@
 import { 
   collection, 
-  addDoc, 
   getDocs, 
-  query, 
-  orderBy, 
-  Timestamp, 
   doc, 
-  getDoc, 
-  updateDoc,
+  getDoc,
   DocumentData,
   where,
-  collectionGroup
+  query
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import type { Supplier, ComplianceRecord } from '../types/supplier';
 
-const SUPPLIERS_COLLECTION = 'suppliers';
-const COMPANY_SUPPLIERS_COLLECTION = 'companySuppliers';
+const COMPANIES_COLLECTION = 'companies';
 
-const convertToFirestoreData = (supplier: Omit<Supplier, 'id'>) => ({
-  name: supplier.name,
-  contactName: supplier.contactName,
-  primaryContact: supplier.primaryContact,
-  taskProgress: supplier.taskProgress,
-  status: supplier.status,
-  complianceScore: supplier.complianceScore,
-  lastUpdated: Timestamp.fromDate(supplier.lastUpdated),
-  invitationSentDate: supplier.invitationSentDate ? Timestamp.fromDate(supplier.invitationSentDate) : null,
-  registrationDate: supplier.registrationDate ? Timestamp.fromDate(supplier.registrationDate) : null,
-  lastLoginDate: supplier.lastLoginDate ? Timestamp.fromDate(supplier.lastLoginDate) : null,
-  pendingRequests: supplier.pendingRequests,
-  completedRequests: supplier.completedRequests,
-  tags: supplier.tags,
-  notes: supplier.notes,
-  complianceHistory: supplier.complianceHistory.map(record => ({
-    date: Timestamp.fromDate(record.date),
-    score: record.score,
-    category: record.category
-  }))
-});
+interface Company {
+  id: string;
+  name: string;
+  contactName: string;
+  email: string;
+  suppliers: string[];
+  customers: string[];
+  createdAt: Date;
+  updatedAt?: Date;
+  notes?: string;
+}
 
-const convertFromFirestoreData = (id: string, data: DocumentData): Supplier => ({
+const convertFromFirestoreData = (id: string, data: DocumentData): Company => ({
   id,
   name: data.name,
   contactName: data.contactName,
-  primaryContact: data.primaryContact,
-  taskProgress: data.taskProgress,
-  status: data.status,
-  complianceScore: data.complianceScore,
-  lastUpdated: data.lastUpdated.toDate(),
-  invitationSentDate: data.invitationSentDate?.toDate(),
-  registrationDate: data.registrationDate?.toDate(),
-  lastLoginDate: data.lastLoginDate?.toDate(),
-  pendingRequests: data.pendingRequests,
-  completedRequests: data.completedRequests,
-  tags: data.tags || [],
-  notes: data.notes,
-  complianceHistory: data.complianceHistory?.map((record: any) => ({
-    date: record.date.toDate(),
-    score: record.score,
-    category: record.category
-  })) || []
+  email: data.email,
+  suppliers: data.suppliers || [],
+  customers: data.customers || [],
+  createdAt: data.createdAt.toDate(),
+  updatedAt: data.updatedAt?.toDate(),
+  notes: data.notes
 });
 
-export const addSupplier = async (
-  companyId: string,
-  supplierData: Omit<Supplier, 'id'>
-): Promise<Supplier> => {
+export const getSupplier = async (companyId: string): Promise<Company> => {
   try {
-    const firestoreData = convertToFirestoreData(supplierData);
-    
-    // Add supplier to suppliers collection
-    const supplierRef = await addDoc(collection(db, SUPPLIERS_COLLECTION), firestoreData);
-    
-    // Create relationship in companySuppliers collection
-    await addDoc(
-      collection(db, COMPANY_SUPPLIERS_COLLECTION, companyId, 'suppliers'),
-      {
-        supplierId: supplierRef.id,
-        addedAt: Timestamp.now()
-      }
-    );
-
-    return {
-      id: supplierRef.id,
-      ...supplierData
-    };
-  } catch (error) {
-    console.error('Error adding supplier:', error);
-    if (error instanceof Error) {
-      throw new Error(`Failed to add supplier: ${error.message}`);
-    }
-    throw new Error('Failed to add supplier');
-  }
-};
-
-export const getSupplier = async (supplierId: string): Promise<Supplier> => {
-  try {
-    const docRef = doc(db, SUPPLIERS_COLLECTION, supplierId);
+    const docRef = doc(db, COMPANIES_COLLECTION, companyId);
     const docSnap = await getDoc(docRef);
     
     if (!docSnap.exists()) {
-      throw new Error('Supplier not found');
+      throw new Error('Company not found');
     }
 
     return convertFromFirestoreData(docSnap.id, docSnap.data());
   } catch (error) {
-    console.error('Error fetching supplier:', error);
+    console.error('Error fetching company:', error);
     if (error instanceof Error) {
-      throw new Error(`Failed to fetch supplier: ${error.message}`);
+      throw new Error(`Failed to fetch company: ${error.message}`);
     }
-    throw new Error('Failed to fetch supplier');
+    throw new Error('Failed to fetch company');
   }
 };
 
-export const getSuppliers = async (companyId: string): Promise<Supplier[]> => {
+export const getSuppliers = async (companyId: string): Promise<Company[]> => {
   try {
-    // Get all supplier IDs for the company
-    const companySuppliersDocs = await getDocs(
-      collection(db, COMPANY_SUPPLIERS_COLLECTION, companyId, 'suppliers')
-    );
+    // First get the company document to get the suppliers array
+    const companyDoc = await getDoc(doc(db, COMPANIES_COLLECTION, companyId));
     
-    const supplierIds = companySuppliersDocs.docs.map(doc => doc.data().supplierId);
+    if (!companyDoc.exists()) {
+      throw new Error('Company not found');
+    }
+
+    const supplierIds = companyDoc.data().suppliers || [];
     
     if (supplierIds.length === 0) {
       return [];
     }
 
-    // Fetch all suppliers that match the IDs
+    // Fetch all supplier companies
     const suppliersQuery = query(
-      collection(db, SUPPLIERS_COLLECTION),
-      where('__name__', 'in', supplierIds),
-      orderBy('lastUpdated', 'desc')
+      collection(db, COMPANIES_COLLECTION),
+      where('__name__', 'in', supplierIds)
     );
     
     const suppliersSnapshot = await getDocs(suppliersQuery);
@@ -145,37 +86,5 @@ export const getSuppliers = async (companyId: string): Promise<Supplier[]> => {
       throw new Error(`Failed to fetch suppliers: ${error.message}`);
     }
     throw new Error('Failed to fetch suppliers');
-  }
-};
-
-export const updateSupplier = async (
-  supplierId: string,
-  updates: Partial<Omit<Supplier, 'id'>>
-): Promise<void> => {
-  try {
-    const docRef = doc(db, SUPPLIERS_COLLECTION, supplierId);
-    const updateData: Record<string, any> = {};
-
-    Object.entries(updates).forEach(([key, value]) => {
-      if (value instanceof Date) {
-        updateData[key] = Timestamp.fromDate(value);
-      } else if (key === 'complianceHistory' && Array.isArray(value)) {
-        updateData[key] = (value as ComplianceRecord[]).map(record => ({
-          date: Timestamp.fromDate(record.date),
-          score: record.score,
-          category: record.category
-        }));
-      } else {
-        updateData[key] = value;
-      }
-    });
-
-    await updateDoc(docRef, updateData);
-  } catch (error) {
-    console.error('Error updating supplier:', error);
-    if (error instanceof Error) {
-      throw new Error(`Failed to update supplier: ${error.message}`);
-    }
-    throw new Error('Failed to update supplier');
   }
 };
