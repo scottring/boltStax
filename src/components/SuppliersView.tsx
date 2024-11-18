@@ -3,8 +3,7 @@ import {
   Flex, 
   Button, 
   HStack, 
-  Heading, 
-  Input,
+  Heading,
   useDisclosure,
   useToast,
   Alert,
@@ -16,7 +15,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogContent,
-  AlertDialogOverlay
+  AlertDialogOverlay,
+  List,
+  ListItem
 } from '@chakra-ui/react';
 import { useState, useEffect, useRef } from 'react';
 import { SupplierTable } from './SupplierTable';
@@ -25,12 +26,15 @@ import { SupplierDetailsModal } from './SupplierDetailsModal';
 import { getSuppliers, deleteSuppliers } from '../services/suppliers';
 import { useAuth } from '../contexts/AuthContext';
 import type { Supplier } from '../types/supplier';
+import { AutoComplete, AutoCompleteInput, AutoCompleteItem, AutoCompleteList } from "@choc-ui/chakra-autocomplete";
 
 export const SuppliersView = () => {
   const { isOpen: isAddModalOpen, onOpen: onAddModalOpen, onClose: onAddModalClose } = useDisclosure();
   const { isOpen: isDetailsModalOpen, onOpen: onDetailsModalOpen, onClose: onDetailsModalClose } = useDisclosure();
   const { isOpen: isDeleteDialogOpen, onOpen: onDeleteDialogOpen, onClose: onDeleteDialogClose } = useDisclosure();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [filteredSuppliers, setFilteredSuppliers] = useState<Supplier[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([]);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,6 +54,7 @@ export const SuppliersView = () => {
       setError(null);
       const data = await getSuppliers(userData.companyId);
       setSuppliers(data);
+      setFilteredSuppliers(data);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       setError(errorMessage);
@@ -69,6 +74,15 @@ export const SuppliersView = () => {
     fetchSuppliers();
   }, [userData?.companyId]);
 
+  useEffect(() => {
+    const filtered = suppliers.filter(supplier => 
+      supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      supplier.primaryContact.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      supplier.contactName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredSuppliers(filtered);
+  }, [searchTerm, suppliers]);
+
   const handleAction = (supplier: Supplier) => {
     setSelectedSupplier(supplier);
     onDetailsModalOpen();
@@ -84,7 +98,7 @@ export const SuppliersView = () => {
 
   const handleSelectAll = (isSelected: boolean) => {
     setSelectedSuppliers(
-      isSelected ? suppliers.map(supplier => supplier.id) : []
+      isSelected ? filteredSuppliers.map(supplier => supplier.id) : []
     );
   };
 
@@ -150,18 +164,34 @@ export const SuppliersView = () => {
         )}
 
         <Flex gap={4} mb={6}>
-          <Input
-            placeholder="Search suppliers..."
-            bg="white"
+          <AutoComplete
+            openOnFocus
+            onChange={(value: string) => setSearchTerm(value)}
             flex={1}
-          />
+          >
+            <AutoCompleteInput
+              placeholder="Search suppliers..."
+              bg="white"
+            />
+            <AutoCompleteList>
+              {filteredSuppliers.map((supplier) => (
+                <AutoCompleteItem
+                  key={supplier.id}
+                  value={supplier.name}
+                  textTransform="capitalize"
+                >
+                  {supplier.name}
+                </AutoCompleteItem>
+              ))}
+            </AutoCompleteList>
+          </AutoComplete>
           <Button variant="outline">
             Filter
           </Button>
         </Flex>
 
         <SupplierTable 
-          suppliers={suppliers}
+          suppliers={filteredSuppliers}
           onAction={handleAction}
           isLoading={isLoading}
           selectedSuppliers={selectedSuppliers}

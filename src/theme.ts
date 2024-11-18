@@ -14,6 +14,11 @@ const theme = extendTheme({
       defaultProps: {
         colorScheme: 'green'
       }
+    },
+    Heading: {
+      baseStyle: {
+        fontWeight: 'semibold'
+      }
     }
   }
 });
