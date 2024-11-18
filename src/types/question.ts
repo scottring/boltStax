@@ -23,6 +23,7 @@ export const QuestionSchema = z.object({
   required: z.boolean().default(true),
   sectionId: z.string().optional(),
   order: z.number().int().min(0).optional(),
+  description: z.string().optional(),
   createdAt: z.date(),
   updatedAt: z.date()
 });
@@ -30,3 +31,5 @@ export const QuestionSchema = z.object({
 export type QuestionTag = z.infer<typeof QuestionTagSchema>;
 export type QuestionSection = z.infer<typeof QuestionSectionSchema>;
 export type Question = z.infer<typeof QuestionSchema>;
+
+export type QuestionType = "text" | "yesNo" | "multipleChoice" | "scale";

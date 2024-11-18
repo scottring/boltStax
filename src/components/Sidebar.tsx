@@ -92,7 +92,7 @@ export const Sidebar = ({ onNavigate, currentView, hasSuppliers }: SidebarProps)
       <Flex direction="column" h="full">
         <Flex 
           px={isCollapsed ? "2" : "6"} 
-          py="6" 
+          py="50" 
           align="center" 
           justify="center"
         >

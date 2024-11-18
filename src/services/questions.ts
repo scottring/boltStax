@@ -1,32 +1,34 @@
 import { collection, addDoc, getDocs, query, orderBy, Timestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import type { Question, QuestionTag } from '../types/question';
+import type { Question, QuestionTag, QuestionSection } from '../types/question';
 
 const QUESTIONS_COLLECTION = 'questions';
 const TAGS_COLLECTION = 'questionTags';
+const SECTIONS_COLLECTION = 'questionSections';
 
-export const addQuestion = async (question: Omit<Question, 'id'>): Promise<void> => {
+export const addQuestion = async (question: Omit<Question, 'id'>): Promise<string> => {
   try {
     const questionData = {
       ...question,
       createdAt: Timestamp.fromDate(question.createdAt),
       updatedAt: Timestamp.fromDate(question.updatedAt)
     };
-    await addDoc(collection(db, QUESTIONS_COLLECTION), questionData);
+    const docRef = await addDoc(collection(db, QUESTIONS_COLLECTION), questionData);
+    return docRef.id; // Return the new document ID
   } catch (error) {
     console.error('Error adding question:', error);
     throw new Error(error instanceof Error ? error.message : 'Failed to add question');
   }
 };
 
-export const updateQuestion = async (question: Question): Promise<void> => {
+export const updateQuestion = async (questionId: string, updates: Partial<Question>): Promise<void> => {
   try {
-    const questionRef = doc(db, QUESTIONS_COLLECTION, question.id);
-    const questionData = {
-      ...question,
+    const questionRef = doc(db, QUESTIONS_COLLECTION, questionId);
+    const updateData = {
+      ...updates,
       updatedAt: Timestamp.fromDate(new Date())
     };
-    await updateDoc(questionRef, questionData);
+    await updateDoc(questionRef, updateData);
   } catch (error) {
     console.error('Error updating question:', error);
     throw new Error(error instanceof Error ? error.message : 'Failed to update question');
@@ -85,19 +87,85 @@ export const getTags = async (): Promise<QuestionTag[]> => {
   }
 };
 
+export const addSection = async (section: Omit<QuestionSection, 'id'>): Promise<void> => {
+  try {
+    await addDoc(collection(db, SECTIONS_COLLECTION), section);
+  } catch (error) {
+    console.error('Error adding section:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to add section');
+  }
+};
+
+export const updateSection = async (section: QuestionSection): Promise<void> => {
+  try {
+    const sectionRef = doc(db, SECTIONS_COLLECTION, section.id);
+    await updateDoc(sectionRef, section);
+  } catch (error) {
+    console.error('Error updating section:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to update section');
+  }
+};
+
+export const deleteSection = async (sectionId: string): Promise<void> => {
+  try {
+    const sectionRef = doc(db, SECTIONS_COLLECTION, sectionId);
+    await deleteDoc(sectionRef);
+  } catch (error) {
+    console.error('Error deleting section:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to delete section');
+  }
+};
+
+export const getSections = async (): Promise<QuestionSection[]> => {
+  try {
+    const q = query(collection(db, SECTIONS_COLLECTION), orderBy('order', 'asc'));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    } as QuestionSection));
+  } catch (error) {
+    console.error('Error fetching sections:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to fetch sections');
+  }
+};
+
 export const getQuestions = async (): Promise<Question[]> => {
   try {
     const q = query(collection(db, QUESTIONS_COLLECTION), orderBy('order', 'asc'));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate() || new Date(),
-      updatedAt: doc.data().updatedAt?.toDate() || new Date(),
-    } as Question));
+    return querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        updatedAt: data.updatedAt?.toDate() || new Date(),
+      } as Question;
+    });
   } catch (error) {
     console.error('Error fetching questions:', error);
     throw new Error(error instanceof Error ? error.message : 'Failed to fetch questions');
+  }
+};
+
+export const updateQuestionOrder = async (questionId: string, newOrder: number, sectionId?: string): Promise<void> => {
+  try {
+    console.log('Updating question order:', { questionId, newOrder, sectionId });
+    const questionRef = doc(db, QUESTIONS_COLLECTION, questionId);
+    const updateData: Record<string, any> = {
+      order: newOrder,
+      updatedAt: Timestamp.fromDate(new Date())
+    };
+    
+    if (typeof sectionId !== 'undefined') {
+      updateData.sectionId = sectionId;
+    }
+    
+    await updateDoc(questionRef, updateData);
+  } catch (error) {
+    console.error('Error updating question order:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to update question order');
   }
 };
 

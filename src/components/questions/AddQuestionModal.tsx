@@ -12,22 +12,13 @@ import {
   Input,
   Select,
   Checkbox,
-  FormErrorMessage,
   VStack,
   useToast,
-  Tag,
-  TagLabel,
-  HStack,
-  Box,
   Textarea,
-  IconButton,
-  Collapse,
-  Text,
 } from '@chakra-ui/react';
-import { useState } from 'react';
-import { QuestionSchema, type QuestionTag } from '../../types/question';
-import { addQuestion } from '../../services/questions';
-import { Plus, Minus, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Question, QuestionTag, QuestionSection } from '../../types/question';
+import { addQuestion, updateQuestion } from '../../services/questions';
 import { TagSelector } from './TagSelector';
 
 interface AddQuestionModalProps {
@@ -35,6 +26,8 @@ interface AddQuestionModalProps {
   onClose: () => void;
   onQuestionAdded: () => void;
   tags: QuestionTag[];
+  sections: QuestionSection[];
+  editingQuestion: Question | null;
 }
 
 export const AddQuestionModal = ({
@@ -42,147 +35,130 @@ export const AddQuestionModal = ({
   onClose,
   onQuestionAdded,
   tags,
+  sections,
+  editingQuestion,
 }: AddQuestionModalProps) => {
+  const [text, setText] = useState('');
+  const [description, setDescription] = useState('');
+  const [type, setType] = useState<Question['type']>('text');
+  const [required, setRequired] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedSection, setSelectedSection] = useState<string | undefined>(undefined);
+  const [options, setOptions] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const toast = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [showOptions, setShowOptions] = useState(false);
-  const [formData, setFormData] = useState({
-    text: '',
-    type: 'text',
-    tags: [] as string[],
-    required: true,
-    options: [] as string[],
-    description: '',
-  });
+
+  useEffect(() => {
+    if (editingQuestion) {
+      setText(editingQuestion.text);
+      setDescription(editingQuestion.description || '');
+      setType(editingQuestion.type);
+      setRequired(editingQuestion.required);
+      setSelectedTags(editingQuestion.tags);
+      setSelectedSection(editingQuestion.sectionId);
+      setOptions(editingQuestion.options || []);
+    } else {
+      resetForm();
+    }
+  }, [editingQuestion]);
+
+  const resetForm = () => {
+    setText('');
+    setDescription('');
+    setType('text');
+    setRequired(false);
+    setSelectedTags([]);
+    setSelectedSection(undefined);
+    setOptions([]);
+  };
 
   const handleSubmit = async () => {
-    setIsLoading(true);
-    setErrors({});
-
     try {
-      const now = new Date();
-      const newQuestion = {
-        ...formData,
-        id: Date.now().toString(),
-        createdAt: now,
-        updatedAt: now,
-        order: 0,
+      setIsSubmitting(true);
+
+      const questionData = {
+        text,
+        description,
+        type,
+        required,
+        tags: selectedTags,
+        sectionId: selectedSection,
+        options: type === 'multipleChoice' ? options : undefined,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
-      const validationResult = QuestionSchema.safeParse(newQuestion);
-
-      if (!validationResult.success) {
-        const formattedErrors: Record<string, string> = {};
-        validationResult.error.issues.forEach(issue => {
-          formattedErrors[issue.path[0].toString()] = issue.message;
+      if (editingQuestion) {
+        await updateQuestion(editingQuestion.id, {
+          ...questionData,
+          order: editingQuestion.order
         });
-        setErrors(formattedErrors);
-        setIsLoading(false);
-        return;
+        toast({
+          title: 'Question updated',
+          status: 'success',
+          duration: 3000,
+        });
+      } else {
+        const newQuestionId = await addQuestion({
+          ...questionData,
+          order: 0 // New questions are added at the beginning
+        });
+        console.log('New question added with ID:', newQuestionId); // Debug log
+        toast({
+          title: 'Question added',
+          status: 'success',
+          duration: 3000,
+        });
       }
 
-      await addQuestion(newQuestion);
-      
-      toast({
-        title: 'Question added successfully',
-        status: 'success',
-        duration: 3000,
-      });
-      
       onQuestionAdded();
       onClose();
-      setFormData({
-        text: '',
-        type: 'text',
-        tags: [],
-        required: true,
-        options: [],
-        description: '',
-      });
-      setShowOptions(false);
+      resetForm();
     } catch (error) {
       toast({
-        title: 'Error adding question',
+        title: 'Error saving question',
         description: error instanceof Error ? error.message : 'An unexpected error occurred',
         status: 'error',
         duration: 5000,
       });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
-  };
-
-  const addOption = () => {
-    setFormData(prev => ({
-      ...prev,
-      options: [...prev.options, '']
-    }));
-  };
-
-  const removeOption = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      options: prev.options.filter((_, i) => i !== index)
-    }));
-  };
-
-  const updateOption = (index: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      options: prev.options.map((opt, i) => i === index ? value : opt)
-    }));
-  };
-
-  const handleTypeChange = (type: string) => {
-    setFormData(prev => ({
-      ...prev,
-      type,
-      options: type === 'multipleChoice' ? [''] : []
-    }));
-    setShowOptions(type === 'multipleChoice');
-  };
-
-  const handleTagsChange = (selectedTags: string[]) => {
-    setFormData(prev => ({
-      ...prev,
-      tags: selectedTags
-    }));
   };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
       <ModalOverlay />
       <ModalContent>
-        <ModalHeader>Add New Question</ModalHeader>
+        <ModalHeader>
+          {editingQuestion ? 'Edit Question' : 'Add Question'}
+        </ModalHeader>
         <ModalCloseButton />
         <ModalBody>
-          <VStack spacing={6}>
-            <FormControl isInvalid={!!errors.text}>
+          <VStack spacing={4}>
+            <FormControl isRequired>
               <FormLabel>Question Text</FormLabel>
               <Input
-                value={formData.text}
-                onChange={(e) => setFormData(prev => ({ ...prev, text: e.target.value }))}
-                placeholder="Enter your question"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Enter question text"
               />
-              <FormErrorMessage>{errors.text}</FormErrorMessage>
             </FormControl>
 
             <FormControl>
               <FormLabel>Description (Optional)</FormLabel>
               <Textarea
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Add additional context or instructions for this question"
-                rows={2}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Enter additional details or instructions"
               />
             </FormControl>
 
-            <FormControl>
+            <FormControl isRequired>
               <FormLabel>Question Type</FormLabel>
               <Select
-                value={formData.type}
-                onChange={(e) => handleTypeChange(e.target.value)}
+                value={type}
+                onChange={(e) => setType(e.target.value as Question['type'])}
               >
                 <option value="text">Short Answer</option>
                 <option value="yesNo">Yes/No</option>
@@ -191,59 +167,48 @@ export const AddQuestionModal = ({
               </Select>
             </FormControl>
 
-            <Collapse in={showOptions} animateOpacity>
-              <Box w="full" py={2}>
-                <FormControl>
-                  <FormLabel>Options</FormLabel>
-                  <VStack spacing={2} align="stretch">
-                    {formData.options.map((option, index) => (
-                      <HStack key={index}>
-                        <Input
-                          value={option}
-                          onChange={(e) => updateOption(index, e.target.value)}
-                          placeholder={`Option ${index + 1}`}
-                        />
-                        <IconButton
-                          aria-label="Remove option"
-                          icon={<Minus size={16} />}
-                          onClick={() => removeOption(index)}
-                          size="sm"
-                          colorScheme="red"
-                          variant="ghost"
-                        />
-                      </HStack>
-                    ))}
-                    <Button
-                      leftIcon={<Plus size={16} />}
-                      variant="ghost"
-                      size="sm"
-                      onClick={addOption}
-                      w="fit-content"
-                    >
-                      Add Option
-                    </Button>
-                  </VStack>
-                </FormControl>
-              </Box>
-            </Collapse>
+            {type === 'multipleChoice' && (
+              <FormControl>
+                <FormLabel>Options (one per line)</FormLabel>
+                <Textarea
+                  value={options.join('\n')}
+                  onChange={(e) => setOptions(e.target.value.split('\n').filter(Boolean))}
+                  placeholder="Enter options"
+                  rows={4}
+                />
+              </FormControl>
+            )}
 
-            <FormControl isInvalid={!!errors.tags}>
+            <FormControl>
+              <FormLabel>Section</FormLabel>
+              <Select
+                value={selectedSection}
+                onChange={(e) => setSelectedSection(e.target.value || undefined)}
+              >
+                <option value="">Unsorted</option>
+                {sections.map(section => (
+                  <option key={section.id} value={section.id}>
+                    {section.name}
+                  </option>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl>
               <FormLabel>Tags</FormLabel>
               <TagSelector
                 availableTags={tags}
-                selectedTagIds={formData.tags}
-                onChange={handleTagsChange}
+                selectedTagIds={selectedTags}
+                onChange={setSelectedTags}
               />
-              <FormErrorMessage>{errors.tags}</FormErrorMessage>
             </FormControl>
 
             <FormControl>
               <Checkbox
-                isChecked={formData.required}
-                onChange={(e) => setFormData(prev => ({ ...prev, required: e.target.checked }))}
-                colorScheme="green"
+                isChecked={required}
+                onChange={(e) => setRequired(e.target.checked)}
               >
-                This question requires an answer
+                Required
               </Checkbox>
             </FormControl>
           </VStack>
@@ -254,12 +219,12 @@ export const AddQuestionModal = ({
             Cancel
           </Button>
           <Button
-            colorScheme="green"
+            colorScheme="blue"
             onClick={handleSubmit}
-            isLoading={isLoading}
-            leftIcon={<Plus size={16} />}
+            isLoading={isSubmitting}
+            isDisabled={!text || (type === 'multipleChoice' && options.length === 0)}
           >
-            Add Question
+            {editingQuestion ? 'Save Changes' : 'Add Question'}
           </Button>
         </ModalFooter>
       </ModalContent>

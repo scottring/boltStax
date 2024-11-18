@@ -2,42 +2,38 @@ import {
   Box,
   Flex,
   Button,
-  Heading,
-  useDisclosure,
   Text,
   VStack,
   HStack,
   useToast,
   Alert,
   AlertIcon,
-  AlertDialog,
-  AlertDialogBody,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogContent,
-  AlertDialogOverlay,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  Checkbox,
-  Badge,
-  IconButton,
+  useDisclosure,
   Menu,
   MenuButton,
   MenuList,
   MenuItem,
-  Tag,
+  MenuDivider,
 } from '@chakra-ui/react';
 import { useState, useEffect, useRef } from 'react';
-import { Question, QuestionTag } from '../../types/question';
-import { getQuestions, getTags, deleteQuestion, initializeSupplierQuestions } from '../../services/questions';
+import { Question, QuestionTag, QuestionSection } from '../../types/question';
+import { 
+  getQuestions, 
+  getTags, 
+  getSections,
+  deleteQuestion, 
+  initializeSupplierQuestions,
+  updateQuestionOrder,
+  updateQuestion
+} from '../../services/questions';
 import { AddQuestionModal } from './AddQuestionModal';
 import { TagsManager } from './TagsManager';
+import { SectionsManager } from './SectionsManager';
 import { ImportQuestionsModal } from './ImportQuestionsModal';
-import { MoreVertical, Edit2, Trash2 } from 'lucide-react';
+import { QuestionBankHeader } from './QuestionBankHeader';
+import { QuestionList } from './QuestionList';
+import { DeleteQuestionDialog } from './DeleteQuestionDialog';
+import { Trash2, FolderOpen, ChevronDown } from 'lucide-react';
 
 export const QuestionsView = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -47,18 +43,28 @@ export const QuestionsView = () => {
     onClose: onTagsClose
   } = useDisclosure();
   const {
+    isOpen: isSectionsOpen,
+    onOpen: onSectionsOpen,
+    onClose: onSectionsClose
+  } = useDisclosure();
+  const {
     isOpen: isImportOpen,
     onOpen: onImportOpen,
     onClose: onImportClose
   } = useDisclosure();
+  const {
+    isOpen: isDeleteDialogOpen,
+    onOpen: onDeleteDialogOpen,
+    onClose: onDeleteDialogClose
+  } = useDisclosure();
   
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [sections, setSections] = useState<QuestionSection[]>([]);
   const [tags, setTags] = useState<QuestionTag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const toast = useToast();
 
@@ -69,13 +75,15 @@ export const QuestionsView = () => {
       
       await initializeSupplierQuestions();
       
-      const [questionsData, tagsData] = await Promise.all([
+      const [questionsData, tagsData, sectionsData] = await Promise.all([
         getQuestions(),
-        getTags()
+        getTags(),
+        getSections()
       ]);
       
       setQuestions(questionsData);
       setTags(tagsData);
+      setSections(sectionsData);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       setError(errorMessage);
@@ -118,15 +126,7 @@ export const QuestionsView = () => {
         duration: 5000,
       });
     } finally {
-      setIsDeleteDialogOpen(false);
-    }
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedQuestions.length === questions.length) {
-      setSelectedQuestions([]);
-    } else {
-      setSelectedQuestions(questions.map(q => q.id));
+      onDeleteDialogClose();
     }
   };
 
@@ -138,60 +138,73 @@ export const QuestionsView = () => {
     );
   };
 
-  const getTypeLabel = (type: Question['type']) => {
-    switch (type) {
-      case 'text':
-        return 'Short Answer';
-      case 'yesNo':
-        return 'Yes/No';
-      case 'multipleChoice':
-        return 'Multiple Choice';
-      case 'scale':
-        return 'Scale';
-      default:
-        return type;
+  const handleReorder = async (newQuestions: Question[]) => {
+    setQuestions(newQuestions);
+
+    try {
+      await Promise.all(
+        newQuestions.map((q, index) => 
+          updateQuestionOrder(q.id, index, q.sectionId)
+        )
+      );
+
+      toast({
+        title: 'Question order updated',
+        status: 'success',
+        duration: 2000,
+      });
+    } catch (error) {
+      toast({
+        title: 'Error updating question order',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+        status: 'error',
+        duration: 5000,
+      });
+      fetchData(); // Revert to original order on error
     }
   };
 
-  const getTypeColor = (type: Question['type']) => {
-    switch (type) {
-      case 'text':
-        return 'blue';
-      case 'yesNo':
-        return 'green';
-      case 'multipleChoice':
-        return 'purple';
-      case 'scale':
-        return 'orange';
-      default:
-        return 'gray';
+  const handleMoveToSection = async (sectionId: string | undefined) => {
+    try {
+      await Promise.all(
+        selectedQuestions.map(questionId => {
+          const question = questions.find(q => q.id === questionId);
+          if (question) {
+            return updateQuestion(questionId, { sectionId });
+          }
+          return Promise.resolve();
+        })
+      );
+
+      toast({
+        title: `Questions moved to ${sectionId ? sections.find(s => s.id === sectionId)?.name : 'Unsorted'}`,
+        status: 'success',
+        duration: 2000,
+      });
+
+      setSelectedQuestions([]);
+      fetchData();
+    } catch (error) {
+      toast({
+        title: 'Error moving questions',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+        status: 'error',
+        duration: 5000,
+      });
     }
   };
 
   return (
     <Box>
-      <Flex 
-        justify="space-between" 
-        align="center" 
-        px="6" 
-        py="6"
-        borderBottom="1px"
-        borderColor="gray.200"
-      >
-        <Heading size="lg">Question Bank</Heading>
-        <HStack spacing={4}>
-          <Button onClick={onTagsOpen}>Manage Tags</Button>
-          <Button onClick={onImportOpen}>Import Questions</Button>
-          <Button 
-            onClick={() => {
-              setEditingQuestion(null);
-              onOpen();
-            }}
-          >
-            Add New Question
-          </Button>
-        </HStack>
-      </Flex>
+      <QuestionBankHeader
+        onOpenSections={onSectionsOpen}
+        onOpenTags={onTagsOpen}
+        onOpenImport={onImportOpen}
+        onOpenAddQuestion={() => {
+          setEditingQuestion(null);
+          onOpen();
+        }}
+      />
 
       <Box px="6" py="4">
         {error && (
@@ -204,14 +217,40 @@ export const QuestionsView = () => {
         {selectedQuestions.length > 0 && (
           <Flex justify="space-between" align="center" mb={4} p={4} bg="gray.50" borderRadius="md">
             <Text>{selectedQuestions.length} question(s) selected</Text>
-            <Button
-              leftIcon={<Trash2 size={16} />}
-              colorScheme="red"
-              size="sm"
-              onClick={() => setIsDeleteDialogOpen(true)}
-            >
-              Delete Selected
-            </Button>
+            <HStack spacing={2}>
+              <Menu>
+                <MenuButton
+                  as={Button}
+                  leftIcon={<FolderOpen size={16} />}
+                  rightIcon={<ChevronDown size={16} />}
+                  size="sm"
+                >
+                  Move to Section
+                </MenuButton>
+                <MenuList>
+                  <MenuItem onClick={() => handleMoveToSection(undefined)}>
+                    Unsorted
+                  </MenuItem>
+                  {sections.length > 0 && <MenuDivider />}
+                  {sections.map(section => (
+                    <MenuItem
+                      key={section.id}
+                      onClick={() => handleMoveToSection(section.id)}
+                    >
+                      {section.name}
+                    </MenuItem>
+                  ))}
+                </MenuList>
+              </Menu>
+              <Button
+                leftIcon={<Trash2 size={16} />}
+                colorScheme="red"
+                size="sm"
+                onClick={onDeleteDialogOpen}
+              >
+                Delete Selected
+              </Button>
+            </HStack>
           </Flex>
         )}
 
@@ -226,94 +265,16 @@ export const QuestionsView = () => {
             </HStack>
           </VStack>
         ) : (
-          <Box overflowX="auto">
-            <Table variant="simple">
-              <Thead>
-                <Tr>
-                  <Th width="40px">
-                    <Checkbox
-                      isChecked={selectedQuestions.length === questions.length}
-                      isIndeterminate={selectedQuestions.length > 0 && selectedQuestions.length < questions.length}
-                      onChange={toggleSelectAll}
-                    />
-                  </Th>
-                  <Th>Question</Th>
-                  <Th>Type</Th>
-                  <Th>Tags</Th>
-                  <Th width="100px">Actions</Th>
-                </Tr>
-              </Thead>
-              <Tbody>
-                {questions.map((question) => (
-                  <Tr key={question.id}>
-                    <Td>
-                      <Checkbox
-                        isChecked={selectedQuestions.includes(question.id)}
-                        onChange={() => toggleSelectQuestion(question.id)}
-                      />
-                    </Td>
-                    <Td>
-                      <Text>{question.text}</Text>
-                    </Td>
-                    <Td>
-                      <Badge colorScheme={getTypeColor(question.type)}>
-                        {getTypeLabel(question.type)}
-                      </Badge>
-                      {question.required && (
-                        <Badge ml={2} colorScheme="red">Required</Badge>
-                      )}
-                    </Td>
-                    <Td>
-                      <Flex gap={2} flexWrap="wrap">
-                        {question.tags.map((tagId) => {
-                          const tag = tags.find(t => t.id === tagId);
-                          return tag ? (
-                            <Tag
-                              key={tagId}
-                              size="sm"
-                              borderRadius="full"
-                              variant="subtle"
-                              bgColor={`${tag.color}20`}
-                            >
-                              {tag.name}
-                            </Tag>
-                          ) : null;
-                        })}
-                      </Flex>
-                    </Td>
-                    <Td>
-                      <Menu>
-                        <MenuButton
-                          as={IconButton}
-                          icon={<MoreVertical size={16} />}
-                          variant="ghost"
-                          size="sm"
-                        />
-                        <MenuList>
-                          <MenuItem
-                            icon={<Edit2 size={16} />}
-                            onClick={() => handleEdit(question)}
-                          >
-                            Edit
-                          </MenuItem>
-                          <MenuItem
-                            icon={<Trash2 size={16} />}
-                            color="red.500"
-                            onClick={() => {
-                              setSelectedQuestions([question.id]);
-                              setIsDeleteDialogOpen(true);
-                            }}
-                          >
-                            Delete
-                          </MenuItem>
-                        </MenuList>
-                      </Menu>
-                    </Td>
-                  </Tr>
-                ))}
-              </Tbody>
-            </Table>
-          </Box>
+          <QuestionList
+            questions={questions}
+            sections={sections}
+            tags={tags}
+            selectedQuestions={selectedQuestions}
+            onToggleSelect={toggleSelectQuestion}
+            onEdit={handleEdit}
+            onDelete={onDeleteDialogOpen}
+            onReorder={handleReorder}
+          />
         )}
       </Box>
 
@@ -325,6 +286,8 @@ export const QuestionsView = () => {
         }}
         onQuestionAdded={fetchData}
         tags={tags}
+        sections={sections}
+        editingQuestion={editingQuestion}
       />
 
       <TagsManager
@@ -334,40 +297,27 @@ export const QuestionsView = () => {
         onTagsUpdated={fetchData}
       />
 
+      <SectionsManager
+        isOpen={isSectionsOpen}
+        onClose={onSectionsClose}
+        onSectionsUpdated={fetchData}
+      />
+
       <ImportQuestionsModal
         isOpen={isImportOpen}
         onClose={onImportClose}
         onQuestionsImported={fetchData}
         tags={tags}
-        sections={[]}
+        sections={sections}
       />
 
-      <AlertDialog
+      <DeleteQuestionDialog
         isOpen={isDeleteDialogOpen}
-        leastDestructiveRef={cancelRef}
-        onClose={() => setIsDeleteDialogOpen(false)}
-      >
-        <AlertDialogOverlay>
-          <AlertDialogContent>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              Delete {selectedQuestions.length === 1 ? 'Question' : 'Questions'}
-            </AlertDialogHeader>
-
-            <AlertDialogBody>
-              Are you sure you want to delete {selectedQuestions.length === 1 ? 'this question' : `these ${selectedQuestions.length} questions`}? This action cannot be undone.
-            </AlertDialogBody>
-
-            <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={() => setIsDeleteDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button colorScheme="red" onClick={handleDelete} ml={3}>
-                Delete
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialogOverlay>
-      </AlertDialog>
+        onClose={onDeleteDialogClose}
+        onConfirm={handleDelete}
+        cancelRef={cancelRef}
+        selectedCount={selectedQuestions.length}
+      />
     </Box>
   );
 };
