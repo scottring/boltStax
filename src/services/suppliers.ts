@@ -5,7 +5,9 @@ import {
   getDoc,
   DocumentData,
   where,
-  query
+  query,
+  orderBy,
+  limit
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
@@ -34,6 +36,33 @@ const convertFromFirestoreData = (id: string, data: DocumentData): Company => ({
   updatedAt: data.updatedAt?.toDate(),
   notes: data.notes
 });
+
+export const searchCompaniesByName = async (searchTerm: string): Promise<Company[]> => {
+  try {
+    const companiesRef = collection(db, COMPANIES_COLLECTION);
+    // Create a query that searches for companies where name starts with the search term
+    const searchTermLower = searchTerm.toLowerCase();
+    
+    const q = query(
+      companiesRef,
+      where('name', '>=', searchTermLower),
+      where('name', '<=', searchTermLower + '\uf8ff'),
+      orderBy('name'),
+      limit(5)
+    );
+
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs
+      .map(doc => convertFromFirestoreData(doc.id, doc.data()))
+      .filter(company => company.name.toLowerCase().includes(searchTermLower));
+  } catch (error) {
+    console.error('Error searching companies:', error);
+    if (error instanceof Error) {
+      throw new Error(`Failed to search companies: ${error.message}`);
+    }
+    throw new Error('Failed to search companies');
+  }
+};
 
 export const getSupplier = async (companyId: string): Promise<Company> => {
   try {

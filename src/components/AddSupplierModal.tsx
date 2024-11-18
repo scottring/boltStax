@@ -14,9 +14,16 @@ import {
   VStack,
   Textarea,
   useToast,
-  useColorModeValue
+  useColorModeValue,
+  Box,
+  List,
+  ListItem,
+  Text,
+  Alert,
+  AlertIcon,
+  useOutsideClick
 } from '@chakra-ui/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { z } from 'zod';
 import { SupplierInviteSchema } from '../types/supplier';
 import { inviteSupplier } from '../services/supplierInvitations';
@@ -24,6 +31,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { getTags } from '../services/tags';
 import { TagSelector } from './questions/TagSelector';
 import type { QuestionTag } from '../types/question';
+import { searchCompaniesByName } from '../services/suppliers';
+import debounce from 'lodash/debounce';
 
 interface AddSupplierModalProps {
   isOpen: boolean;
@@ -37,6 +46,10 @@ export const AddSupplierModal = ({ isOpen, onClose, onSupplierAdded }: AddSuppli
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [availableTags, setAvailableTags] = useState<QuestionTag[]>([]);
+  const [searchResults, setSearchResults] = useState<Array<{ id: string; name: string }>>([]);
+  const [showResults, setShowResults] = useState(false);
+  const [existingCompany, setExistingCompany] = useState<{ id: string; name: string } | null>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
   const [formData, setFormData] = useState({
     name: '',
     contactName: '',
@@ -48,6 +61,13 @@ export const AddSupplierModal = ({ isOpen, onClose, onSupplierAdded }: AddSuppli
   const borderColor = useColorModeValue('gray.100', 'gray.600');
   const inputBg = useColorModeValue('white', 'gray.800');
   const labelColor = useColorModeValue('gray.700', 'gray.300');
+  const resultsBg = useColorModeValue('white', 'gray.700');
+  const resultsHoverBg = useColorModeValue('gray.50', 'gray.600');
+
+  useOutsideClick({
+    ref: searchRef,
+    handler: () => setShowResults(false),
+  });
 
   useEffect(() => {
     const loadTags = async () => {
@@ -67,11 +87,54 @@ export const AddSupplierModal = ({ isOpen, onClose, onSupplierAdded }: AddSuppli
     loadTags();
   }, [toast]);
 
+  const debouncedSearch = useCallback(
+    debounce(async (searchTerm: string) => {
+      if (searchTerm.length < 2) {
+        setSearchResults([]);
+        setShowResults(false);
+        return;
+      }
+
+      try {
+        const results = await searchCompaniesByName(searchTerm);
+        setSearchResults(results.map(company => ({ id: company.id, name: company.name })));
+        setShowResults(true);
+      } catch (error) {
+        console.error('Error searching companies:', error);
+        setSearchResults([]);
+      }
+    }, 300),
+    []
+  );
+
+  const handleCompanyNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData(prev => ({ ...prev, name: value }));
+    setExistingCompany(null);
+    debouncedSearch(value);
+  };
+
+  const handleCompanySelect = (company: { id: string; name: string }) => {
+    setFormData(prev => ({ ...prev, name: company.name }));
+    setExistingCompany(company);
+    setShowResults(false);
+  };
+
   const handleSubmit = async () => {
     if (!userData) {
       toast({
         title: 'Authentication Error',
         description: 'You must be logged in to invite suppliers',
+        status: 'error',
+        duration: 5000,
+      });
+      return;
+    }
+
+    if (existingCompany) {
+      toast({
+        title: 'Company Already Exists',
+        description: 'This company is already registered in the system.',
         status: 'error',
         duration: 5000,
       });
@@ -126,11 +189,11 @@ export const AddSupplierModal = ({ isOpen, onClose, onSupplierAdded }: AddSuppli
         <ModalCloseButton size="sm" />
         <ModalBody>
           <VStack spacing={5}>
-            <FormControl isInvalid={!!errors.name}>
+            <FormControl isInvalid={!!errors.name} position="relative" ref={searchRef}>
               <FormLabel fontSize="sm" color={labelColor}>Company Name</FormLabel>
               <Input
                 value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={handleCompanyNameChange}
                 placeholder="Enter company name"
                 size="sm"
                 bg={inputBg}
@@ -139,6 +202,48 @@ export const AddSupplierModal = ({ isOpen, onClose, onSupplierAdded }: AddSuppli
                 _focus={{ borderColor: 'green.500', boxShadow: 'none' }}
               />
               <FormErrorMessage fontSize="xs">{errors.name}</FormErrorMessage>
+              
+              {/* Search Results Dropdown */}
+              {showResults && searchResults.length > 0 && (
+                <Box
+                  position="absolute"
+                  top="100%"
+                  left={0}
+                  right={0}
+                  zIndex={1}
+                  mt={1}
+                  bg={resultsBg}
+                  borderRadius="md"
+                  boxShadow="md"
+                  border="1px"
+                  borderColor={borderColor}
+                  maxH="200px"
+                  overflowY="auto"
+                >
+                  <List spacing={0}>
+                    {searchResults.map((company) => (
+                      <ListItem
+                        key={company.id}
+                        px={4}
+                        py={2}
+                        cursor="pointer"
+                        _hover={{ bg: resultsHoverBg }}
+                        onClick={() => handleCompanySelect(company)}
+                      >
+                        <Text fontSize="sm">{company.name}</Text>
+                      </ListItem>
+                    ))}
+                  </List>
+                </Box>
+              )}
+
+              {/* Existing Company Warning */}
+              {existingCompany && (
+                <Alert status="warning" mt={2} size="sm" borderRadius="md">
+                  <AlertIcon />
+                  This company is already registered in the system
+                </Alert>
+              )}
             </FormControl>
 
             <FormControl isInvalid={!!errors.contactName}>
@@ -213,6 +318,7 @@ export const AddSupplierModal = ({ isOpen, onClose, onSupplierAdded }: AddSuppli
             size="sm"
             onClick={handleSubmit}
             isLoading={isLoading}
+            isDisabled={!!existingCompany}
           >
             Send Invitation
           </Button>
