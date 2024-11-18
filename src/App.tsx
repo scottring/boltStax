@@ -1,6 +1,6 @@
 import { Flex, Box } from '@chakra-ui/react';
 import { Sidebar, ViewType } from './components/Sidebar';
-import { CompaniesView } from './components/CompaniesView';
+import { SuppliersView } from './components/SuppliersView';
 import { QuestionsView } from './components/questions/QuestionsView';
 import { SupplierProductsView } from './components/products/SupplierProductsView';
 import { CustomersProductsView } from './components/customers/CustomersProductsView';
@@ -84,7 +84,7 @@ function AppContent() {
         hasSuppliers={true} // TODO: Get this from actual data
       />
       <Box flex={1} overflow="auto" p="6">
-        {currentView === 'mySuppliers' && <CompaniesView />}
+        {currentView === 'mySuppliers' && <SuppliersView />}
         {currentView === 'questions' && <QuestionsView />}
         {currentView === 'supplierProducts' && (
           <SupplierProductsView 

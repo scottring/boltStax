@@ -17,7 +17,8 @@ import {
   SliderTrack,
   SliderFilledTrack,
   SliderThumb,
-  SliderMark
+  SliderMark,
+  Container
 } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -91,7 +92,18 @@ export const SupplierQuestionsForm = ({ inviteCode, onComplete }: SupplierQuesti
 
     try {
       await onComplete(answers);
-      navigate('/dashboard'); // Or wherever you want to redirect after completion
+      // Show success message before navigating
+      toast({
+        title: 'Success!',
+        description: 'Your answers have been submitted successfully.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      // Add a small delay before navigation to ensure the toast is seen
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1000);
     } catch (error) {
       console.error('Error submitting answers:', error);
       toast({
@@ -179,7 +191,7 @@ export const SupplierQuestionsForm = ({ inviteCode, onComplete }: SupplierQuesti
   }
 
   return (
-    <Box maxW="600px" mx="auto" p={6}>
+    <Container maxW="container.lg" py={8}>
       <Text fontSize="xl" fontWeight="medium" mb={6}>
         Required Questions
       </Text>
@@ -196,10 +208,11 @@ export const SupplierQuestionsForm = ({ inviteCode, onComplete }: SupplierQuesti
           onClick={handleSubmit}
           isLoading={isLoading}
           mt={4}
+          size="lg"
         >
           Submit
         </Button>
       </VStack>
-    </Box>
+    </Container>
   );
 };

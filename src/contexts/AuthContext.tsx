@@ -125,6 +125,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    // Clear URL parameters before signing out
+    window.history.pushState({}, '', window.location.pathname);
     await firebaseSignOut(auth);
   };
 

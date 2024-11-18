@@ -15,13 +15,16 @@ import {
 import { useState, useEffect } from 'react';
 import { SupplierTable } from './SupplierTable';
 import { AddSupplierModal } from './AddSupplierModal';
+import { SupplierDetailsModal } from './SupplierDetailsModal';
 import { getSuppliers } from '../services/suppliers';
 import { useAuth } from '../contexts/AuthContext';
 import type { Supplier } from '../types/supplier';
 
 export const SuppliersView = () => {
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isAddModalOpen, onOpen: onAddModalOpen, onClose: onAddModalClose } = useDisclosure();
+  const { isOpen: isDetailsModalOpen, onOpen: onDetailsModalOpen, onClose: onDetailsModalClose } = useDisclosure();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const toast = useToast();
@@ -58,7 +61,8 @@ export const SuppliersView = () => {
   }, [userData?.companyId]);
 
   const handleAction = (supplier: Supplier) => {
-    console.log('Action clicked for supplier:', supplier);
+    setSelectedSupplier(supplier);
+    onDetailsModalOpen();
   };
 
   return (
@@ -74,7 +78,7 @@ export const SuppliersView = () => {
         <Heading size="lg">My Suppliers</Heading>
         <HStack spacing={4}>
           <Button variant="outline">Export Supplier Data</Button>
-          <Button onClick={onOpen}>Add New Supplier</Button>
+          <Button onClick={onAddModalOpen}>Add New Supplier</Button>
         </HStack>
       </Flex>
 
@@ -106,9 +110,15 @@ export const SuppliersView = () => {
       </Box>
 
       <AddSupplierModal 
-        isOpen={isOpen}
-        onClose={onClose}
+        isOpen={isAddModalOpen}
+        onClose={onAddModalClose}
         onSupplierAdded={fetchSuppliers}
+      />
+
+      <SupplierDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={onDetailsModalClose}
+        supplier={selectedSupplier}
       />
     </Box>
   );
