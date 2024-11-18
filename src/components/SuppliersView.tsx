@@ -17,20 +17,11 @@ import { SupplierTable } from './SupplierTable';
 import { AddSupplierModal } from './AddSupplierModal';
 import { getSuppliers } from '../services/suppliers';
 import { useAuth } from '../contexts/AuthContext';
+import type { Supplier } from '../types/supplier';
 
-interface Company {
-  id: string;
-  name: string;
-  contactName: string;
-  email: string;
-  createdAt: Date;
-  updatedAt?: Date;
-  notes?: string;
-}
-
-export const CompaniesView = () => {
+export const SuppliersView = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [suppliers, setSuppliers] = useState<Company[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const toast = useToast();
@@ -64,9 +55,9 @@ export const CompaniesView = () => {
 
   useEffect(() => {
     fetchSuppliers();
-  }, [userData?.companyId]); // Re-fetch when companyId changes
+  }, [userData?.companyId]);
 
-  const handleAction = (supplier: Company) => {
+  const handleAction = (supplier: Supplier) => {
     console.log('Action clicked for supplier:', supplier);
   };
 
@@ -82,7 +73,7 @@ export const CompaniesView = () => {
       >
         <Heading size="lg">My Suppliers</Heading>
         <HStack spacing={4}>
-          <Button variant="outline">Export Data</Button>
+          <Button variant="outline">Export Supplier Data</Button>
           <Button onClick={onOpen}>Add New Supplier</Button>
         </HStack>
       </Flex>
@@ -98,7 +89,7 @@ export const CompaniesView = () => {
 
         <Flex gap={4} mb={6}>
           <Input
-            placeholder="Type Something"
+            placeholder="Search suppliers..."
             bg="white"
             flex={1}
           />

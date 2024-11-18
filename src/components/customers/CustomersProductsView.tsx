@@ -16,54 +16,44 @@ import {
 import { useState, useEffect } from 'react';
 import { Product } from '../../types/product';
 import { getSupplierProducts } from '../../services/products';
-import { getSuppliers } from '../../services/suppliers';
+import { getCustomers } from '../../services/customers';
+import type { Customer } from '../../types/customer';
 import { AddCustomerProductModal } from './AddCustomerProductModal';
 import { CustomerProductCard } from './CustomerProductCard';
 import { useAuth } from '../../contexts/AuthContext';
 
-interface Company {
-  id: string;
-  name: string;
-  contactName: string;
-  email: string;
-  suppliers: string[];
-  customers: string[];
-  createdAt: Date;
-  updatedAt?: Date;
-  notes?: string;
-}
-
 export const CustomersProductsView = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [products, setProducts] = useState<Product[]>([]);
-  const [suppliers, setSuppliers] = useState<Company[]>([]);
-  const [selectedSupplierId, setSelectedSupplierId] = useState<string>('');
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const toast = useToast();
   const { userData } = useAuth();
 
-  const fetchSuppliers = async () => {
+  const fetchCustomers = async () => {
     if (!userData?.companyId) return;
     
     try {
-      const data = await getSuppliers(userData.companyId);
-      setSuppliers(data);
-      if (data.length > 0 && !selectedSupplierId) {
-        setSelectedSupplierId(data[0].id);
+      const data = await getCustomers(userData.companyId);
+      setCustomers(data);
+      if (data.length > 0 && !selectedCustomerId) {
+        setSelectedCustomerId(data[0].id);
       }
     } catch (error) {
-      console.error('Error fetching suppliers:', error);
+      console.error('Error fetching customers:', error);
     }
   };
 
   const fetchProducts = async () => {
-    if (!selectedSupplierId) return;
+    if (!userData?.companyId) return;
     
     setIsLoading(true);
     try {
       setError(null);
-      const data = await getSupplierProducts(selectedSupplierId);
+      // Get products where the authenticated company is the supplier
+      const data = await getSupplierProducts(userData.companyId);
       setProducts(data);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
@@ -81,14 +71,18 @@ export const CustomersProductsView = () => {
   };
 
   useEffect(() => {
-    fetchSuppliers();
+    fetchCustomers();
   }, [userData?.companyId]);
 
   useEffect(() => {
-    if (selectedSupplierId) {
+    if (userData?.companyId) {
       fetchProducts();
     }
-  }, [selectedSupplierId]);
+  }, [userData?.companyId]);
+
+  if (!userData?.companyId) {
+    return null;
+  }
 
   return (
     <Box>
@@ -107,13 +101,13 @@ export const CustomersProductsView = () => {
       <Box px="6" py="4">
         <Box mb={6}>
           <Select
-            value={selectedSupplierId}
-            onChange={(e) => setSelectedSupplierId(e.target.value)}
+            value={selectedCustomerId}
+            onChange={(e) => setSelectedCustomerId(e.target.value)}
             bg="white"
           >
-            {suppliers.map((supplier) => (
-              <option key={supplier.id} value={supplier.id}>
-                {supplier.name}
+            {customers.map((customer) => (
+              <option key={customer.id} value={customer.id}>
+                {customer.name}
               </option>
             ))}
           </Select>
@@ -128,7 +122,7 @@ export const CustomersProductsView = () => {
 
         {!isLoading && products.length === 0 ? (
           <VStack spacing={4} py={8}>
-            <Text color="gray.500">No products available for this customer</Text>
+            <Text color="gray.500">No products available for customers</Text>
             <Button onClick={onOpen}>Add First Product</Button>
           </VStack>
         ) : (
@@ -150,7 +144,7 @@ export const CustomersProductsView = () => {
           isOpen={isOpen}
           onClose={onClose}
           onProductAdded={fetchProducts}
-          supplierId={selectedSupplierId}
+          supplierId={userData.companyId}  // The authenticated company is the supplier
         />
       </Box>
     </Box>

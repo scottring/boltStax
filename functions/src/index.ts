@@ -35,10 +35,10 @@ interface EmailData {
 
 const emailTemplates = {
   SUPPLIER_INVITATION: {
-    subject: 'Invitation to Join BoltStax',
+    subject: 'Invitation to Join StacksData',
     html: (data: EmailData['data']) => `
       <h2>Hello ${data.contactName},</h2>
-      <p>You have been invited to join BoltStax as a supplier for ${data.companyName}.</p>
+      <p>You have been invited to join StacksData as a supplier for ${data.companyName}.</p>
       <p>Click the link below to create your account and get started:</p>
       <a href="${data.accessUrl}" style="display:inline-block;background:#4CAF50;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;">
         Accept Invitation
@@ -130,7 +130,7 @@ export const sendEmail = onCall<EmailData>(functionConfig, async (request) => {
       to: data.to,
       from: {
         email: fromEmail,
-        name: 'BoltStax'
+        name: 'StacksData'  // Changed from BoltStax to StacksData
       },
       subject: template.subject,
       html: template.html(data.data),

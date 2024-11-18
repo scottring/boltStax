@@ -16,22 +16,47 @@ import {
   IconButton
 } from '@chakra-ui/react';
 import { Mail, ExternalLink } from 'lucide-react';
-
-interface Company {
-  id: string;
-  name: string;
-  contactName: string;
-  email: string;
-  createdAt: Date;
-  updatedAt?: Date;
-  notes?: string;
-}
+import type { Supplier } from '../types/supplier';
 
 interface SupplierTableProps {
-  suppliers: Company[];
-  onAction: (supplier: Company) => void;
+  suppliers: Supplier[];
+  onAction: (supplier: Supplier) => void;
   isLoading?: boolean;
 }
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'pending_invitation':
+      return 'yellow';
+    case 'invitation_sent':
+      return 'blue';
+    case 'registered':
+      return 'purple';
+    case 'active':
+      return 'green';
+    case 'inactive':
+      return 'red';
+    default:
+      return 'gray';
+  }
+};
+
+const getStatusLabel = (status: string) => {
+  switch (status) {
+    case 'pending_invitation':
+      return 'Pending';
+    case 'invitation_sent':
+      return 'Invited';
+    case 'registered':
+      return 'Registered';
+    case 'active':
+      return 'Active';
+    case 'inactive':
+      return 'Inactive';
+    default:
+      return status;
+  }
+};
 
 export const SupplierTable = ({ suppliers, onAction, isLoading = false }: SupplierTableProps) => {
   return (
@@ -43,6 +68,7 @@ export const SupplierTable = ({ suppliers, onAction, isLoading = false }: Suppli
               <Th>Company Name</Th>
               <Th>Contact Name</Th>
               <Th>Email</Th>
+              <Th>Status</Th>
               <Th>Added Date</Th>
               <Th>Last Updated</Th>
               <Th>Actions</Th>
@@ -52,7 +78,7 @@ export const SupplierTable = ({ suppliers, onAction, isLoading = false }: Suppli
             {isLoading ? (
               Array.from({ length: 3 }).map((_, index) => (
                 <Tr key={index}>
-                  {Array.from({ length: 6 }).map((_, cellIndex) => (
+                  {Array.from({ length: 7 }).map((_, cellIndex) => (
                     <Td key={cellIndex}>
                       <Skeleton height="20px" />
                     </Td>
@@ -61,7 +87,7 @@ export const SupplierTable = ({ suppliers, onAction, isLoading = false }: Suppli
               ))
             ) : suppliers.length === 0 ? (
               <Tr>
-                <Td colSpan={6} textAlign="center" py={8}>
+                <Td colSpan={7} textAlign="center" py={8}>
                   <Text color="gray.500">No suppliers found</Text>
                 </Td>
               </Tr>
@@ -72,7 +98,7 @@ export const SupplierTable = ({ suppliers, onAction, isLoading = false }: Suppli
                   <Td>{supplier.contactName}</Td>
                   <Td>
                     <HStack spacing={2}>
-                      <Text>{supplier.email}</Text>
+                      <Text>{supplier.primaryContact}</Text>
                       <Tooltip label="Send email">
                         <IconButton
                           aria-label="Send email"
@@ -81,20 +107,30 @@ export const SupplierTable = ({ suppliers, onAction, isLoading = false }: Suppli
                           variant="ghost"
                           onClick={(e) => {
                             e.stopPropagation();
-                            window.location.href = `mailto:${supplier.email}`;
+                            window.location.href = `mailto:${supplier.primaryContact}`;
                           }}
                         />
                       </Tooltip>
                     </HStack>
                   </Td>
                   <Td>
+                    <Badge
+                      colorScheme={getStatusColor(supplier.status)}
+                      px={2}
+                      py={1}
+                      borderRadius="full"
+                    >
+                      {getStatusLabel(supplier.status)}
+                    </Badge>
+                  </Td>
+                  <Td>
                     <Text fontSize="sm" color="gray.600">
-                      {supplier.createdAt.toLocaleDateString()}
+                      {supplier.invitationSentDate?.toLocaleDateString() || '-'}
                     </Text>
                   </Td>
                   <Td>
                     <Text fontSize="sm" color="gray.600">
-                      {supplier.updatedAt?.toLocaleDateString() || '-'}
+                      {supplier.lastUpdated?.toLocaleDateString() || '-'}
                     </Text>
                   </Td>
                   <Td>

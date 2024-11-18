@@ -9,14 +9,20 @@ const INVITES_COLLECTION = 'invites';
 
 export const inviteSupplier = async (invite: SupplierInvite, companyId: string): Promise<void> => {
   let inviteCode;
+  let supplierCompanyId;
   
   try {
     const now = new Date();
     inviteCode = uuidv4(); // Generate unique invite code
+    supplierCompanyId = uuidv4(); // Generate unique company ID for the supplier
+
+    const batch = writeBatch(db);
 
     // Store invitation data in invites collection
-    await setDoc(doc(db, INVITES_COLLECTION, inviteCode), {
+    const inviteRef = doc(db, INVITES_COLLECTION, inviteCode);
+    batch.set(inviteRef, {
       invitingCompanyId: companyId,
+      supplierCompanyId: supplierCompanyId, // Store the supplier company ID with the invite
       email: invite.primaryContact,
       name: invite.name,
       contactName: invite.contactName,
@@ -26,6 +32,34 @@ export const inviteSupplier = async (invite: SupplierInvite, companyId: string):
       notes: invite.notes,
       tags: invite.tags // Store the tags with the invitation
     });
+
+    // Create supplier company record with pending status
+    const supplierRef = doc(db, COMPANIES_COLLECTION, supplierCompanyId);
+    batch.set(supplierRef, {
+      name: invite.name,
+      contactName: invite.contactName,
+      email: invite.primaryContact,
+      status: 'pending_invitation',
+      createdAt: Timestamp.fromDate(now),
+      updatedAt: Timestamp.fromDate(now),
+      notes: invite.notes,
+      tags: invite.tags,
+      suppliers: [],
+      customers: [companyId], // Add the inviting company as a customer
+      taskProgress: 0,
+      pendingRequests: 0,
+      completedRequests: 0
+    });
+
+    // Add supplier to inviting company's suppliers array
+    const invitingCompanyRef = doc(db, COMPANIES_COLLECTION, companyId);
+    batch.update(invitingCompanyRef, {
+      suppliers: arrayUnion(supplierCompanyId),
+      updatedAt: Timestamp.fromDate(now)
+    });
+
+    // Commit all the changes
+    await batch.commit();
 
     // Generate invitation URL with the invite code
     const inviteUrl = `${window.location.origin}/signup?invite=${inviteCode}`;
@@ -43,15 +77,32 @@ export const inviteSupplier = async (invite: SupplierInvite, companyId: string):
       });
     } catch (emailError) {
       // Clean up if email fails
-      if (inviteCode) {
-        await deleteDoc(doc(db, INVITES_COLLECTION, inviteCode));
-      }
+      const cleanupBatch = writeBatch(db);
+      cleanupBatch.delete(inviteRef);
+      cleanupBatch.delete(supplierRef);
+      cleanupBatch.update(invitingCompanyRef, {
+        suppliers: arrayUnion(supplierCompanyId),
+        updatedAt: Timestamp.fromDate(now)
+      });
+      await cleanupBatch.commit();
       throw emailError;
     }
   } catch (error) {
     // Clean up on any error
-    if (inviteCode) {
-      await deleteDoc(doc(db, INVITES_COLLECTION, inviteCode));
+    if (inviteCode || supplierCompanyId) {
+      const cleanupBatch = writeBatch(db);
+      if (inviteCode) {
+        cleanupBatch.delete(doc(db, INVITES_COLLECTION, inviteCode));
+      }
+      if (supplierCompanyId) {
+        cleanupBatch.delete(doc(db, COMPANIES_COLLECTION, supplierCompanyId));
+        // Remove supplier from inviting company's suppliers array
+        cleanupBatch.update(doc(db, COMPANIES_COLLECTION, companyId), {
+          suppliers: arrayUnion(supplierCompanyId),
+          updatedAt: Timestamp.fromDate(new Date())
+        });
+      }
+      await cleanupBatch.commit();
     }
     console.error('Error inviting supplier:', error);
     if (error instanceof Error) {

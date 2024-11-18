@@ -31,6 +31,8 @@ import { useState, useEffect } from 'react';
 import { Plus, MoreVertical, Send, Trash2, FileText } from 'lucide-react';
 import type { ProductSheet } from '../../types/productSheet';
 import type { QuestionTag } from '../../types/questionnaire';
+import type { Supplier } from '../../types/supplier';
+import type { Company } from '../../services/suppliers';
 import { getAllSheets, deleteSheet, sendSheet } from '../../services/productSheets';
 import { getSuppliers, getSupplier } from '../../services/suppliers';
 import { getTags } from '../../services/questions';
@@ -38,26 +40,26 @@ import { CreateProductSheetModal } from './CreateProductSheetModal';
 import { ProductSheetView } from './ProductSheetView';
 import { useAuth } from '../../contexts/AuthContext';
 
-// Using Company type from suppliers.ts until we move it to types/company.ts
-interface Company {
-  id: string;
-  name: string;
-  contactName: string;
-  email: string;
-  suppliers: string[];
-  customers: string[];
-  createdAt: Date;
-  updatedAt?: Date;
-  notes?: string;
-}
-
 interface SupplierProductsViewProps {
   onNavigateToResponse: (productSheetId: string, supplierId: string) => void;
 }
 
+// Helper function to convert Supplier to Company type for CreateProductSheetModal
+const supplierToCompany = (supplier: Supplier): Company => ({
+  id: supplier.id,
+  name: supplier.name,
+  contactName: supplier.contactName,
+  email: supplier.primaryContact,
+  suppliers: [],
+  customers: [],
+  createdAt: supplier.invitationSentDate || new Date(),
+  updatedAt: supplier.lastUpdated,
+  notes: supplier.notes
+});
+
 export const SupplierProductsView = ({ onNavigateToResponse }: SupplierProductsViewProps) => {
   const [sheets, setSheets] = useState<ProductSheet[]>([]);
-  const [suppliers, setSuppliers] = useState<Company[]>([]);  // Companies that have the supplier role
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [tags, setTags] = useState<QuestionTag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSheet, setSelectedSheet] = useState<ProductSheet | null>(null);
@@ -198,6 +200,9 @@ export const SupplierProductsView = ({ onNavigateToResponse }: SupplierProductsV
   if (!userData) {
     return null;
   }
+
+  // Convert suppliers to Company type for CreateProductSheetModal
+  const companiesForModal = suppliers.map(supplierToCompany);
 
   return (
     <Box>
@@ -376,7 +381,7 @@ export const SupplierProductsView = ({ onNavigateToResponse }: SupplierProductsV
         isOpen={isCreateModalOpen}
         onClose={onCreateModalClose}
         onSheetCreated={fetchData}
-        suppliers={suppliers}
+        suppliers={companiesForModal}
         tags={tags}
         companyId={userData.companyId}
       />
