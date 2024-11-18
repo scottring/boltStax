@@ -13,15 +13,24 @@ import {
   AlertDescription
 } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
-import type { Supplier } from '../types/supplier';
 import { SupplierTable } from './SupplierTable';
 import { AddSupplierModal } from './AddSupplierModal';
 import { getSuppliers } from '../services/suppliers';
 import { useAuth } from '../contexts/AuthContext';
 
+interface Company {
+  id: string;
+  name: string;
+  contactName: string;
+  email: string;
+  createdAt: Date;
+  updatedAt?: Date;
+  notes?: string;
+}
+
 export const CompaniesView = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [suppliers, setSuppliers] = useState<Company[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const toast = useToast();
@@ -57,44 +66,53 @@ export const CompaniesView = () => {
     fetchSuppliers();
   }, [userData?.companyId]); // Re-fetch when companyId changes
 
-  const handleAction = (supplier: Supplier) => {
+  const handleAction = (supplier: Company) => {
     console.log('Action clicked for supplier:', supplier);
   };
 
   return (
-    <Box p={8}>
-      <Flex justify="space-between" align="center" mb={8}>
-        <Heading size="lg">Companies</Heading>
+    <Box>
+      <Flex 
+        justify="space-between" 
+        align="center" 
+        px="6" 
+        py="6" 
+        borderBottom="1px" 
+        borderColor="gray.200"
+      >
+        <Heading size="lg">My Suppliers</Heading>
         <HStack spacing={4}>
           <Button variant="outline">Export Data</Button>
           <Button onClick={onOpen}>Add New Supplier</Button>
         </HStack>
       </Flex>
 
-      {error && (
-        <Alert status="error" mb={6}>
-          <AlertIcon />
-          <AlertTitle mr={2}>Error!</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+      <Box px="6" py="4">
+        {error && (
+          <Alert status="error" mb={6}>
+            <AlertIcon />
+            <AlertTitle mr={2}>Error!</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-      <Flex gap={4} mb={6}>
-        <Input
-          placeholder="Type Something"
-          bg="white"
-          flex={1}
+        <Flex gap={4} mb={6}>
+          <Input
+            placeholder="Type Something"
+            bg="white"
+            flex={1}
+          />
+          <Button variant="outline">
+            Filter
+          </Button>
+        </Flex>
+
+        <SupplierTable 
+          suppliers={suppliers}
+          onAction={handleAction}
+          isLoading={isLoading}
         />
-        <Button variant="outline">
-          Filter
-        </Button>
-      </Flex>
-
-      <SupplierTable 
-        suppliers={suppliers}
-        onAction={handleAction}
-        isLoading={isLoading}
-      />
+      </Box>
 
       <AddSupplierModal 
         isOpen={isOpen}

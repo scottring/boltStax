@@ -16,15 +16,27 @@ import {
   FormErrorMessage,
 } from '@chakra-ui/react';
 import { useState } from 'react';
-import type { Supplier } from '../../types/supplier';
 import type { QuestionTag } from '../../types/questionnaire';
 import { createProductSheet } from '../../services/productSheets';
+
+// Using Company type from suppliers.ts until we move it to types/company.ts
+interface Company {
+  id: string;
+  name: string;
+  contactName: string;
+  email: string;
+  suppliers: string[];
+  customers: string[];
+  createdAt: Date;
+  updatedAt?: Date;
+  notes?: string;
+}
 
 export interface CreateProductSheetModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSheetCreated: () => void;
-  suppliers: Supplier[];
+  suppliers: Company[];  // Companies that have the supplier role
   tags: QuestionTag[];
   companyId: string;
 }

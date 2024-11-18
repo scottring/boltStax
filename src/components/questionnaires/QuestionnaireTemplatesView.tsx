@@ -19,7 +19,8 @@ import {
   Text,
   useToast,
   useColorModeValue,
-  Tooltip
+  Tooltip,
+  Button
 } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
 import { Plus, MoreVertical, Edit2, Archive, Copy } from 'lucide-react';
@@ -113,119 +114,124 @@ export const QuestionnaireTemplatesView = () => {
   };
 
   return (
-    <Box p={6}>
-      <Flex justify="space-between" align="center" mb={6}>
-        <Heading size="md" fontWeight="medium">Questionnaire Templates</Heading>
-        <Tooltip label="Create New Template" hasArrow>
-          <IconButton
-            aria-label="Create new template"
-            icon={<Plus size={18} />}
-            onClick={handleCreateNew}
-            colorScheme="green"
-            variant="ghost"
-            size="sm"
-          />
-        </Tooltip>
+    <Box>
+      <Flex 
+        justify="space-between" 
+        align="center" 
+        px="6" 
+        py="6"
+        borderBottom="1px"
+        borderColor="gray.200"
+      >
+        <Heading size="lg">Questionnaire Templates</Heading>
+        <Button
+          leftIcon={<Plus size={18} />}
+          onClick={handleCreateNew}
+        >
+          Create New Template
+        </Button>
       </Flex>
 
-      <Box
-        bg={tableBg}
-        borderRadius="xl"
-        borderWidth="1px"
-        borderColor={borderColor}
-        overflow="hidden"
-        boxShadow="sm"
-      >
-        <Table variant="simple" size="sm">
-          <Thead bg={headerBg}>
-            <Tr>
-              <Th py={4} fontSize="xs" textTransform="none">Template Name</Th>
-              <Th py={4} fontSize="xs" textTransform="none">Tags</Th>
-              <Th py={4} fontSize="xs" textTransform="none">Sections</Th>
-              <Th py={4} fontSize="xs" textTransform="none">Questions</Th>
-              <Th py={4} fontSize="xs" textTransform="none">Last Updated</Th>
-              <Th py={4} fontSize="xs" textTransform="none">Version</Th>
-              <Th width="50px"></Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {templates.map((template) => (
-              <Tr key={template.id}>
-                <Td fontWeight="medium">{template.title}</Td>
-                <Td>
-                  <HStack spacing={1} flexWrap="wrap">
-                    {template.tags.map(tagId => {
-                      const tag = getTagById(tagId);
-                      return tag ? (
-                        <ChakraTag
-                          key={tagId}
-                          size="sm"
-                          borderRadius="full"
-                          variant="subtle"
-                          bgColor={`${tag.color}15`}
-                          color={tag.color}
-                        >
-                          {tag.name}
-                        </ChakraTag>
-                      ) : null;
-                    })}
-                  </HStack>
-                </Td>
-                <Td>
-                  <Text fontSize="sm">{template.sections.length}</Text>
-                </Td>
-                <Td>
-                  <Text fontSize="sm">
-                    {template.sections.reduce((total, section) => total + section.questions.length, 0)}
-                  </Text>
-                </Td>
-                <Td>
-                  <Text fontSize="sm">
-                    {template.updatedAt.toDate().toLocaleDateString()}
-                  </Text>
-                </Td>
-                <Td>
-                  <Text fontSize="sm">v{template.version}</Text>
-                </Td>
-                <Td>
-                  <Menu>
-                    <MenuButton
-                      as={IconButton}
-                      icon={<MoreVertical size={14} />}
-                      variant="ghost"
-                      size="xs"
-                      _hover={{ bg: 'gray.100' }}
-                    />
-                    <MenuList shadow="lg" py={1} minW="150px">
-                      <MenuItem
-                        icon={<Edit2 size={14} />}
-                        onClick={() => handleEdit(template)}
-                        fontSize="sm"
-                      >
-                        Edit
-                      </MenuItem>
-                      <MenuItem
-                        icon={<Copy size={14} />}
-                        onClick={() => handleDuplicate(template)}
-                        fontSize="sm"
-                      >
-                        Duplicate
-                      </MenuItem>
-                      <MenuItem
-                        icon={<Archive size={14} />}
-                        onClick={() => handleArchive(template)}
-                        color="red.500"
-                        fontSize="sm"
-                      >
-                        Archive
-                      </MenuItem>
-                    </MenuList>
-                  </Menu>
-                </Td>
+      <Box px="6" py="4">
+        <Box
+          bg={tableBg}
+          borderRadius="xl"
+          borderWidth="1px"
+          borderColor={borderColor}
+          overflow="hidden"
+          boxShadow="sm"
+        >
+          <Table variant="simple" size="sm">
+            <Thead bg={headerBg}>
+              <Tr>
+                <Th py={4} fontSize="xs" textTransform="none">Template Name</Th>
+                <Th py={4} fontSize="xs" textTransform="none">Tags</Th>
+                <Th py={4} fontSize="xs" textTransform="none">Sections</Th>
+                <Th py={4} fontSize="xs" textTransform="none">Questions</Th>
+                <Th py={4} fontSize="xs" textTransform="none">Last Updated</Th>
+                <Th py={4} fontSize="xs" textTransform="none">Version</Th>
+                <Th width="50px"></Th>
               </Tr>
-            ))}
-          </Tbody>
-        </Table>
+            </Thead>
+            <Tbody>
+              {templates.map((template) => (
+                <Tr key={template.id}>
+                  <Td fontWeight="medium">{template.title}</Td>
+                  <Td>
+                    <HStack spacing={1} flexWrap="wrap">
+                      {template.tags.map(tagId => {
+                        const tag = getTagById(tagId);
+                        return tag ? (
+                          <ChakraTag
+                            key={tagId}
+                            size="sm"
+                            borderRadius="full"
+                            variant="subtle"
+                            bgColor={`${tag.color}15`}
+                            color={tag.color}
+                          >
+                            {tag.name}
+                          </ChakraTag>
+                        ) : null;
+                      })}
+                    </HStack>
+                  </Td>
+                  <Td>
+                    <Text fontSize="sm">{template.sections.length}</Text>
+                  </Td>
+                  <Td>
+                    <Text fontSize="sm">
+                      {template.sections.reduce((total, section) => total + section.questions.length, 0)}
+                    </Text>
+                  </Td>
+                  <Td>
+                    <Text fontSize="sm">
+                      {template.updatedAt.toDate().toLocaleDateString()}
+                    </Text>
+                  </Td>
+                  <Td>
+                    <Text fontSize="sm">v{template.version}</Text>
+                  </Td>
+                  <Td>
+                    <Menu>
+                      <MenuButton
+                        as={IconButton}
+                        icon={<MoreVertical size={14} />}
+                        variant="ghost"
+                        size="xs"
+                        _hover={{ bg: 'gray.100' }}
+                      />
+                      <MenuList shadow="lg" py={1} minW="150px">
+                        <MenuItem
+                          icon={<Edit2 size={14} />}
+                          onClick={() => handleEdit(template)}
+                          fontSize="sm"
+                        >
+                          Edit
+                        </MenuItem>
+                        <MenuItem
+                          icon={<Copy size={14} />}
+                          onClick={() => handleDuplicate(template)}
+                          fontSize="sm"
+                        >
+                          Duplicate
+                        </MenuItem>
+                        <MenuItem
+                          icon={<Archive size={14} />}
+                          onClick={() => handleArchive(template)}
+                          color="red.500"
+                          fontSize="sm"
+                        >
+                          Archive
+                        </MenuItem>
+                      </MenuList>
+                    </Menu>
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </Box>
       </Box>
 
       <TemplateEditorModal

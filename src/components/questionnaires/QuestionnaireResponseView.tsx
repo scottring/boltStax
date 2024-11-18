@@ -27,7 +27,8 @@ import {
   useColorModeValue,
   HStack,
   Divider,
-  Badge
+  Badge,
+  Flex
 } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
 import type { 
@@ -311,143 +312,189 @@ export const QuestionnaireResponseView = ({
 
   if (isLoading) {
     return (
-      <Box p={6}>
-        <Text>Loading questionnaire...</Text>
+      <Box>
+        <Flex 
+          justify="space-between" 
+          align="center" 
+          px="6" 
+          py="6"
+          borderBottom="1px"
+          borderColor="gray.200"
+        >
+          <Heading size="lg">Loading...</Heading>
+        </Flex>
+        <Box px="6" py="4">
+          <Text>Loading questionnaire...</Text>
+        </Box>
       </Box>
     );
   }
 
   if (error) {
     return (
-      <Box p={6}>
-        <Alert status="error">
-          <AlertIcon />
-          {error}
-        </Alert>
+      <Box>
+        <Flex 
+          justify="space-between" 
+          align="center" 
+          px="6" 
+          py="6"
+          borderBottom="1px"
+          borderColor="gray.200"
+        >
+          <Heading size="lg">Error</Heading>
+        </Flex>
+        <Box px="6" py="4">
+          <Alert status="error">
+            <AlertIcon />
+            {error}
+          </Alert>
+        </Box>
       </Box>
     );
   }
 
   if (!response || !template) {
     return (
-      <Box p={6}>
-        <Alert status="info">
-          <AlertIcon />
-          No questionnaire found
-        </Alert>
+      <Box>
+        <Flex 
+          justify="space-between" 
+          align="center" 
+          px="6" 
+          py="6"
+          borderBottom="1px"
+          borderColor="gray.200"
+        >
+          <Heading size="lg">Not Found</Heading>
+        </Flex>
+        <Box px="6" py="4">
+          <Alert status="info">
+            <AlertIcon />
+            No questionnaire found
+          </Alert>
+        </Box>
       </Box>
     );
   }
 
   return (
-    <Box p={6}>
-      <VStack spacing={6} align="stretch">
-        <Box>
-          <HStack justify="space-between" align="center" mb={2}>
-            <Heading size="md">{template.title}</Heading>
-            <Badge
-              colorScheme={getStatusColor(response.status)}
-              fontSize="sm"
-              px={2}
-              py={1}
+    <Box>
+      <Flex 
+        justify="space-between" 
+        align="center" 
+        px="6" 
+        py="6"
+        borderBottom="1px"
+        borderColor="gray.200"
+      >
+        <Heading size="lg">{template.title}</Heading>
+        <Badge
+          colorScheme={getStatusColor(response.status)}
+          fontSize="sm"
+          px={2}
+          py={1}
+          borderRadius="full"
+        >
+          {response.status}
+        </Badge>
+      </Flex>
+
+      <Box px="6" py="4">
+        <VStack spacing={6} align="stretch">
+          <Box>
+            <Progress
+              value={response.completionRate}
+              size="sm"
+              colorScheme="green"
               borderRadius="full"
-            >
-              {response.status}
-            </Badge>
-          </HStack>
-          <Progress
-            value={response.completionRate}
-            size="sm"
-            colorScheme="green"
-            borderRadius="full"
-          />
-          <Text fontSize="sm" color="gray.500" mt={1}>
-            {response.completionRate.toFixed(0)}% complete
-          </Text>
-        </Box>
-
-        {mergedSections.map((section) => (
-          <Box
-            key={section.id}
-            bg={bgColor}
-            borderWidth="1px"
-            borderColor={borderColor}
-            borderRadius="lg"
-            p={6}
-          >
-            <VStack spacing={6} align="stretch">
-              <Box>
-                <Heading size="sm" mb={2}>{section.title}</Heading>
-                {section.description && (
-                  <Text fontSize="sm" color="gray.600">{section.description}</Text>
-                )}
-              </Box>
-
-              <Divider />
-
-              <VStack spacing={8} align="stretch">
-                {section.questions.map((question) => {
-                  const response = section.responses.find(
-                    r => r.questionId === question.id
-                  );
-
-                  return (
-                    <FormControl
-                      key={question.id}
-                      isRequired={question.required}
-                    >
-                      <FormLabel fontSize="sm" mb={2}>
-                        {question.text}
-                      </FormLabel>
-                      {question.description && (
-                        <FormHelperText mb={2}>
-                          {question.description}
-                        </FormHelperText>
-                      )}
-                      {renderQuestionInput(section.id, question, response?.value ?? null)}
-                    </FormControl>
-                  );
-                })}
-              </VStack>
-            </VStack>
-          </Box>
-        ))}
-
-        {response.status === 'pending' && (
-          <Button
-            colorScheme="green"
-            size="lg"
-            onClick={onOpen}
-            isLoading={isSubmitting}
-          >
-            Submit Questionnaire
-          </Button>
-        )}
-      </VStack>
-
-      <Modal isOpen={isOpen} onClose={onClose}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Submit Questionnaire</ModalHeader>
-          <ModalBody>
-            <Text>
-              Are you sure you want to submit this questionnaire? You won't be able to make changes after submission.
+            />
+            <Text fontSize="sm" color="gray.500" mt={1}>
+              {response.completionRate.toFixed(0)}% complete
             </Text>
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onClose}>
-              Cancel
-            </Button>
+          </Box>
+
+          {mergedSections.map((section) => (
+            <Box
+              key={section.id}
+              bg={bgColor}
+              borderWidth="1px"
+              borderColor={borderColor}
+              borderRadius="lg"
+              p={6}
+            >
+              <VStack spacing={6} align="stretch">
+                <Box>
+                  <Heading size="sm" mb={2}>{section.title}</Heading>
+                  {section.description && (
+                    <Text fontSize="sm" color="gray.600">{section.description}</Text>
+                  )}
+                </Box>
+
+                <Divider />
+
+                <VStack spacing={8} align="stretch">
+                  {section.questions.map((question) => {
+                    const response = section.responses.find(
+                      r => r.questionId === question.id
+                    );
+
+                    return (
+                      <FormControl
+                        key={question.id}
+                        isRequired={question.required}
+                      >
+                        <FormLabel fontSize="sm" mb={2}>
+                          {question.text}
+                        </FormLabel>
+                        {question.description && (
+                          <FormHelperText mb={2}>
+                            {question.description}
+                          </FormHelperText>
+                        )}
+                        {renderQuestionInput(section.id, question, response?.value ?? null)}
+                      </FormControl>
+                    );
+                  })}
+                </VStack>
+              </VStack>
+            </Box>
+          ))}
+
+          {response.status === 'pending' && (
             <Button
               colorScheme="green"
-              onClick={handleSubmit}
+              size="lg"
+              onClick={onOpen}
               isLoading={isSubmitting}
             >
-              Submit
+              Submit Questionnaire
             </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+          )}
+        </VStack>
+
+        <Modal isOpen={isOpen} onClose={onClose}>
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader>Submit Questionnaire</ModalHeader>
+            <ModalBody>
+              <Text>
+                Are you sure you want to submit this questionnaire? You won't be able to make changes after submission.
+              </Text>
+            </ModalBody>
+            <ModalFooter>
+              <Button variant="ghost" mr={3} onClick={onClose}>
+                Cancel
+              </Button>
+              <Button
+                colorScheme="green"
+                onClick={handleSubmit}
+                isLoading={isSubmitting}
+              >
+                Submit
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+      </Box>
     </Box>
   );
 };

@@ -169,8 +169,15 @@ export const QuestionsView = () => {
   };
 
   return (
-    <Box p={8}>
-      <Flex justify="space-between" align="center" mb={8}>
+    <Box>
+      <Flex 
+        justify="space-between" 
+        align="center" 
+        px="6" 
+        py="6"
+        borderBottom="1px"
+        borderColor="gray.200"
+      >
         <Heading size="lg">Question Bank</Heading>
         <HStack spacing={4}>
           <Button onClick={onTagsOpen}>Manage Tags</Button>
@@ -186,134 +193,129 @@ export const QuestionsView = () => {
         </HStack>
       </Flex>
 
-      {error && (
-        <Alert status="error" mb={6}>
-          <AlertIcon />
-          {error}
-        </Alert>
-      )}
+      <Box px="6" py="4">
+        {error && (
+          <Alert status="error" mb={6}>
+            <AlertIcon />
+            {error}
+          </Alert>
+        )}
 
-      {selectedQuestions.length > 0 && (
-        <Flex justify="space-between" align="center" mb={4} p={4} bg="gray.50" borderRadius="md">
-          <Text>{selectedQuestions.length} question(s) selected</Text>
-          <Button
-            leftIcon={<Trash2 size={16} />}
-            colorScheme="red"
-            size="sm"
-            onClick={() => setIsDeleteDialogOpen(true)}
-          >
-            Delete Selected
-          </Button>
-        </Flex>
-      )}
+        {selectedQuestions.length > 0 && (
+          <Flex justify="space-between" align="center" mb={4} p={4} bg="gray.50" borderRadius="md">
+            <Text>{selectedQuestions.length} question(s) selected</Text>
+            <Button
+              leftIcon={<Trash2 size={16} />}
+              colorScheme="red"
+              size="sm"
+              onClick={() => setIsDeleteDialogOpen(true)}
+            >
+              Delete Selected
+            </Button>
+          </Flex>
+        )}
 
-      {isLoading ? (
-        <Text>Loading questions...</Text>
-      ) : questions.length === 0 ? (
-        <VStack spacing={4} py={8}>
-          <Text color="gray.500">No questions available</Text>
-          <HStack spacing={4}>
-            <Button onClick={onImportOpen}>Import Questions</Button>
-            <Button onClick={onOpen}>Add Your First Question</Button>
-          </HStack>
-        </VStack>
-      ) : (
-        <Box overflowX="auto">
-          <Table variant="simple">
-            <Thead>
-              <Tr>
-                <Th width="40px">
-                  <Checkbox
-                    isChecked={selectedQuestions.length === questions.length}
-                    isIndeterminate={selectedQuestions.length > 0 && selectedQuestions.length < questions.length}
-                    onChange={toggleSelectAll}
-                  />
-                </Th>
-                <Th>Question</Th>
-                <Th>Type</Th>
-                <Th>Tags</Th>
-                <Th width="100px">Actions</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {questions.map((question) => (
-                <Tr key={question.id}>
-                  <Td>
+        {isLoading ? (
+          <Text>Loading questions...</Text>
+        ) : questions.length === 0 ? (
+          <VStack spacing={4} py={8}>
+            <Text color="gray.500">No questions available</Text>
+            <HStack spacing={4}>
+              <Button onClick={onImportOpen}>Import Questions</Button>
+              <Button onClick={onOpen}>Add Your First Question</Button>
+            </HStack>
+          </VStack>
+        ) : (
+          <Box overflowX="auto">
+            <Table variant="simple">
+              <Thead>
+                <Tr>
+                  <Th width="40px">
                     <Checkbox
-                      isChecked={selectedQuestions.includes(question.id)}
-                      onChange={() => toggleSelectQuestion(question.id)}
+                      isChecked={selectedQuestions.length === questions.length}
+                      isIndeterminate={selectedQuestions.length > 0 && selectedQuestions.length < questions.length}
+                      onChange={toggleSelectAll}
                     />
-                  </Td>
-                  <Td>
-                    <VStack align="start" spacing={1}>
-                      <Text>{question.text}</Text>
-                      {question.description && (
-                        <Text fontSize="sm" color="gray.600">
-                          {question.description}
-                        </Text>
-                      )}
-                    </VStack>
-                  </Td>
-                  <Td>
-                    <Badge colorScheme={getTypeColor(question.type)}>
-                      {getTypeLabel(question.type)}
-                    </Badge>
-                    {question.required && (
-                      <Badge ml={2} colorScheme="red">Required</Badge>
-                    )}
-                  </Td>
-                  <Td>
-                    <Flex gap={2} flexWrap="wrap">
-                      {question.tags.map((tagId) => {
-                        const tag = tags.find(t => t.id === tagId);
-                        return tag ? (
-                          <Tag
-                            key={tagId}
-                            size="sm"
-                            borderRadius="full"
-                            variant="subtle"
-                            bgColor={`${tag.color}20`}
-                          >
-                            {tag.name}
-                          </Tag>
-                        ) : null;
-                      })}
-                    </Flex>
-                  </Td>
-                  <Td>
-                    <Menu>
-                      <MenuButton
-                        as={IconButton}
-                        icon={<MoreVertical size={16} />}
-                        variant="ghost"
-                        size="sm"
-                      />
-                      <MenuList>
-                        <MenuItem
-                          icon={<Edit2 size={16} />}
-                          onClick={() => handleEdit(question)}
-                        >
-                          Edit
-                        </MenuItem>
-                        <MenuItem
-                          icon={<Trash2 size={16} />}
-                          color="red.500"
-                          onClick={() => {
-                            setSelectedQuestions([question.id]);
-                            setIsDeleteDialogOpen(true);
-                          }}
-                        >
-                          Delete
-                        </MenuItem>
-                      </MenuList>
-                    </Menu>
-                  </Td>
+                  </Th>
+                  <Th>Question</Th>
+                  <Th>Type</Th>
+                  <Th>Tags</Th>
+                  <Th width="100px">Actions</Th>
                 </Tr>
-              ))}
-            </Tbody>
-          </Table>
-        </Box>
-      )}
+              </Thead>
+              <Tbody>
+                {questions.map((question) => (
+                  <Tr key={question.id}>
+                    <Td>
+                      <Checkbox
+                        isChecked={selectedQuestions.includes(question.id)}
+                        onChange={() => toggleSelectQuestion(question.id)}
+                      />
+                    </Td>
+                    <Td>
+                      <Text>{question.text}</Text>
+                    </Td>
+                    <Td>
+                      <Badge colorScheme={getTypeColor(question.type)}>
+                        {getTypeLabel(question.type)}
+                      </Badge>
+                      {question.required && (
+                        <Badge ml={2} colorScheme="red">Required</Badge>
+                      )}
+                    </Td>
+                    <Td>
+                      <Flex gap={2} flexWrap="wrap">
+                        {question.tags.map((tagId) => {
+                          const tag = tags.find(t => t.id === tagId);
+                          return tag ? (
+                            <Tag
+                              key={tagId}
+                              size="sm"
+                              borderRadius="full"
+                              variant="subtle"
+                              bgColor={`${tag.color}20`}
+                            >
+                              {tag.name}
+                            </Tag>
+                          ) : null;
+                        })}
+                      </Flex>
+                    </Td>
+                    <Td>
+                      <Menu>
+                        <MenuButton
+                          as={IconButton}
+                          icon={<MoreVertical size={16} />}
+                          variant="ghost"
+                          size="sm"
+                        />
+                        <MenuList>
+                          <MenuItem
+                            icon={<Edit2 size={16} />}
+                            onClick={() => handleEdit(question)}
+                          >
+                            Edit
+                          </MenuItem>
+                          <MenuItem
+                            icon={<Trash2 size={16} />}
+                            color="red.500"
+                            onClick={() => {
+                              setSelectedQuestions([question.id]);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                          >
+                            Delete
+                          </MenuItem>
+                        </MenuList>
+                      </Menu>
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </Box>
+        )}
+      </Box>
 
       <AddQuestionModal
         isOpen={isOpen}
@@ -323,7 +325,6 @@ export const QuestionsView = () => {
         }}
         onQuestionAdded={fetchData}
         tags={tags}
-        editingQuestion={editingQuestion}
       />
 
       <TagsManager

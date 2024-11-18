@@ -24,12 +24,12 @@ import {
   Tag,
   Skeleton,
   Tooltip,
-  useColorModeValue
+  useColorModeValue,
+  Button
 } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
 import { Plus, MoreVertical, Send, Trash2, FileText } from 'lucide-react';
 import type { ProductSheet } from '../../types/productSheet';
-import type { Supplier } from '../../types/supplier';
 import type { QuestionTag } from '../../types/questionnaire';
 import { getAllSheets, deleteSheet, sendSheet } from '../../services/productSheets';
 import { getSuppliers, getSupplier } from '../../services/suppliers';
@@ -38,13 +38,26 @@ import { CreateProductSheetModal } from './CreateProductSheetModal';
 import { ProductSheetView } from './ProductSheetView';
 import { useAuth } from '../../contexts/AuthContext';
 
+// Using Company type from suppliers.ts until we move it to types/company.ts
+interface Company {
+  id: string;
+  name: string;
+  contactName: string;
+  email: string;
+  suppliers: string[];
+  customers: string[];
+  createdAt: Date;
+  updatedAt?: Date;
+  notes?: string;
+}
+
 interface SupplierProductsViewProps {
   onNavigateToResponse: (productSheetId: string, supplierId: string) => void;
 }
 
 export const SupplierProductsView = ({ onNavigateToResponse }: SupplierProductsViewProps) => {
   const [sheets, setSheets] = useState<ProductSheet[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [suppliers, setSuppliers] = useState<Company[]>([]);  // Companies that have the supplier role
   const [tags, setTags] = useState<QuestionTag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSheet, setSelectedSheet] = useState<ProductSheet | null>(null);
@@ -187,171 +200,176 @@ export const SupplierProductsView = ({ onNavigateToResponse }: SupplierProductsV
   }
 
   return (
-    <Box p={6}>
-      <Flex justify="space-between" align="center" mb={6}>
-        <Heading size="md" fontWeight="medium">Product Sheets</Heading>
-        <Tooltip label="Create New Sheet" hasArrow>
-          <IconButton
-            aria-label="Create new sheet"
-            icon={<Plus size={18} />}
-            onClick={onCreateModalOpen}
-            colorScheme="green"
-            variant="ghost"
-            size="sm"
-          />
-        </Tooltip>
+    <Box>
+      <Flex 
+        justify="space-between" 
+        align="center" 
+        px="6" 
+        py="6"
+        borderBottom="1px"
+        borderColor="gray.200"
+      >
+        <Heading size="lg">Product Sheets</Heading>
+        <Button
+          leftIcon={<Plus size={18} />}
+          onClick={onCreateModalOpen}
+        >
+          Create New Sheet
+        </Button>
       </Flex>
 
-      {error && (
-        <Alert status="error" mb={6} borderRadius="md">
-          <AlertIcon />
-          {error}
-        </Alert>
-      )}
+      <Box px="6" py="4">
+        {error && (
+          <Alert status="error" mb={6} borderRadius="md">
+            <AlertIcon />
+            {error}
+          </Alert>
+        )}
 
-      <Box 
-        bg={tableBg} 
-        borderRadius="xl" 
-        borderWidth="1px"
-        borderColor={borderColor}
-        overflow="hidden"
-        boxShadow="sm"
-      >
-        <TableContainer>
-          <Table variant="simple" size="sm">
-            <Thead bg={headerBg}>
-              <Tr>
-                <Th py={4} fontSize="xs" textTransform="none">Sheet Name</Th>
-                <Th py={4} fontSize="xs" textTransform="none">Supplier</Th>
-                <Th py={4} fontSize="xs" textTransform="none">Tags</Th>
-                <Th py={4} fontSize="xs" textTransform="none">Status</Th>
-                <Th py={4} fontSize="xs" textTransform="none">Due Date</Th>
-                <Th py={4} fontSize="xs" textTransform="none">Created</Th>
-                <Th width="50px"></Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {isLoading ? (
-                Array.from({ length: 3 }).map((_, index) => (
-                  <Tr key={index}>
-                    {Array.from({ length: 7 }).map((_, cellIndex) => (
-                      <Td key={cellIndex}>
-                        <Skeleton height="16px" />
-                      </Td>
-                    ))}
-                  </Tr>
-                ))
-              ) : sheets.length === 0 ? (
+        <Box 
+          bg={tableBg} 
+          borderRadius="xl" 
+          borderWidth="1px"
+          borderColor={borderColor}
+          overflow="hidden"
+          boxShadow="sm"
+        >
+          <TableContainer>
+            <Table variant="simple" size="sm">
+              <Thead bg={headerBg}>
                 <Tr>
-                  <Td colSpan={7} textAlign="center" py={8}>
-                    <Text color="gray.500" fontSize="sm">No product sheets found</Text>
-                  </Td>
+                  <Th py={4} fontSize="xs" textTransform="none">Sheet Name</Th>
+                  <Th py={4} fontSize="xs" textTransform="none">Supplier</Th>
+                  <Th py={4} fontSize="xs" textTransform="none">Tags</Th>
+                  <Th py={4} fontSize="xs" textTransform="none">Status</Th>
+                  <Th py={4} fontSize="xs" textTransform="none">Due Date</Th>
+                  <Th py={4} fontSize="xs" textTransform="none">Created</Th>
+                  <Th width="50px"></Th>
                 </Tr>
-              ) : (
-                sheets.map((sheet) => (
-                  <Tr 
-                    key={sheet.id} 
-                    _hover={{ bg: hoverBg, cursor: 'pointer' }}
-                    onClick={() => handleRowClick(sheet)}
-                  >
-                    <Td py={3} fontSize="sm" fontWeight="medium">{sheet.name}</Td>
-                    <Td py={3}>
-                      <SupplierName supplierId={sheet.supplierId} getSupplierName={getSupplierName} />
-                    </Td>
-                    <Td py={3}>
-                      <HStack spacing={1} flexWrap="wrap">
-                        {sheet.selectedTags.map(tagId => {
-                          const tag = tags.find(t => t.id === tagId);
-                          return tag ? (
-                            <Tag
-                              key={tagId}
-                              size="sm"
-                              borderRadius="full"
-                              variant="subtle"
-                              bgColor={`${tag.color}15`}
-                              color={tag.color}
-                              fontSize="xs"
-                              px={2}
-                              py={0.5}
-                            >
-                              {tag.name}
-                            </Tag>
-                          ) : null;
-                        })}
-                      </HStack>
-                    </Td>
-                    <Td py={3}>
-                      <Badge
-                        colorScheme={getStatusColor(sheet.status)}
-                        textTransform="capitalize"
-                        borderRadius="full"
-                        px={2}
-                        py={0.5}
-                        fontSize="xs"
-                      >
-                        {sheet.status}
-                      </Badge>
-                    </Td>
-                    <Td py={3} fontSize="xs" color="gray.600">
-                      {sheet.dueDate ? new Date(sheet.dueDate).toLocaleDateString() : '-'}
-                    </Td>
-                    <Td py={3} fontSize="xs" color="gray.600">
-                      {new Date(sheet.createdAt).toLocaleDateString()}
-                    </Td>
-                    <Td py={3}>
-                      <Menu>
-                        <MenuButton
-                          as={IconButton}
-                          icon={<MoreVertical size={14} />}
-                          variant="ghost"
-                          size="xs"
-                          _hover={{ bg: 'gray.100' }}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        <MenuList 
-                          shadow="lg" 
-                          borderColor={borderColor}
-                          py={1}
-                          minW="150px"
-                        >
-                          {sheet.status !== 'draft' && (
-                            <MenuItem
-                              icon={<FileText size={14} />}
-                              onClick={(e) => handleViewResponse(sheet, e)}
-                              fontSize="sm"
-                              py={2}
-                            >
-                              View Response
-                            </MenuItem>
-                          )}
-                          {sheet.status === 'draft' && (
-                            <MenuItem
-                              icon={<Send size={14} />}
-                              onClick={(e) => handleSend(sheet.id, e)}
-                              fontSize="sm"
-                              py={2}
-                            >
-                              Send to Supplier
-                            </MenuItem>
-                          )}
-                          <MenuItem
-                            icon={<Trash2 size={14} />}
-                            onClick={(e) => handleDelete(sheet.id, e)}
-                            color="red.500"
-                            fontSize="sm"
-                            py={2}
-                          >
-                            Delete
-                          </MenuItem>
-                        </MenuList>
-                      </Menu>
+              </Thead>
+              <Tbody>
+                {isLoading ? (
+                  Array.from({ length: 3 }).map((_, index) => (
+                    <Tr key={index}>
+                      {Array.from({ length: 7 }).map((_, cellIndex) => (
+                        <Td key={cellIndex}>
+                          <Skeleton height="16px" />
+                        </Td>
+                      ))}
+                    </Tr>
+                  ))
+                ) : sheets.length === 0 ? (
+                  <Tr>
+                    <Td colSpan={7} textAlign="center" py={8}>
+                      <Text color="gray.500" fontSize="sm">No product sheets found</Text>
                     </Td>
                   </Tr>
-                ))
-              )}
-            </Tbody>
-          </Table>
-        </TableContainer>
+                ) : (
+                  sheets.map((sheet) => (
+                    <Tr 
+                      key={sheet.id} 
+                      _hover={{ bg: hoverBg, cursor: 'pointer' }}
+                      onClick={() => handleRowClick(sheet)}
+                    >
+                      <Td py={3} fontSize="sm" fontWeight="medium">{sheet.name}</Td>
+                      <Td py={3}>
+                        <SupplierName supplierId={sheet.supplierId} getSupplierName={getSupplierName} />
+                      </Td>
+                      <Td py={3}>
+                        <HStack spacing={1} flexWrap="wrap">
+                          {sheet.selectedTags.map(tagId => {
+                            const tag = tags.find(t => t.id === tagId);
+                            return tag ? (
+                              <Tag
+                                key={tagId}
+                                size="sm"
+                                borderRadius="full"
+                                variant="subtle"
+                                bgColor={`${tag.color}15`}
+                                color={tag.color}
+                                fontSize="xs"
+                                px={2}
+                                py={0.5}
+                              >
+                                {tag.name}
+                              </Tag>
+                            ) : null;
+                          })}
+                        </HStack>
+                      </Td>
+                      <Td py={3}>
+                        <Badge
+                          colorScheme={getStatusColor(sheet.status)}
+                          textTransform="capitalize"
+                          borderRadius="full"
+                          px={2}
+                          py={0.5}
+                          fontSize="xs"
+                        >
+                          {sheet.status}
+                        </Badge>
+                      </Td>
+                      <Td py={3} fontSize="xs" color="gray.600">
+                        {sheet.dueDate ? new Date(sheet.dueDate).toLocaleDateString() : '-'}
+                      </Td>
+                      <Td py={3} fontSize="xs" color="gray.600">
+                        {new Date(sheet.createdAt).toLocaleDateString()}
+                      </Td>
+                      <Td py={3}>
+                        <Menu>
+                          <MenuButton
+                            as={IconButton}
+                            icon={<MoreVertical size={14} />}
+                            variant="ghost"
+                            size="xs"
+                            _hover={{ bg: 'gray.100' }}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <MenuList 
+                            shadow="lg" 
+                            borderColor={borderColor}
+                            py={1}
+                            minW="150px"
+                          >
+                            {sheet.status !== 'draft' && (
+                              <MenuItem
+                                icon={<FileText size={14} />}
+                                onClick={(e) => handleViewResponse(sheet, e)}
+                                fontSize="sm"
+                                py={2}
+                              >
+                                View Response
+                              </MenuItem>
+                            )}
+                            {sheet.status === 'draft' && (
+                              <MenuItem
+                                icon={<Send size={14} />}
+                                onClick={(e) => handleSend(sheet.id, e)}
+                                fontSize="sm"
+                                py={2}
+                              >
+                                Send to Supplier
+                              </MenuItem>
+                            )}
+                            <MenuItem
+                              icon={<Trash2 size={14} />}
+                              onClick={(e) => handleDelete(sheet.id, e)}
+                              color="red.500"
+                              fontSize="sm"
+                              py={2}
+                            >
+                              Delete
+                            </MenuItem>
+                          </MenuList>
+                        </Menu>
+                      </Td>
+                    </Tr>
+                  ))
+                )}
+              </Tbody>
+            </Table>
+          </TableContainer>
+        </Box>
       </Box>
 
       <CreateProductSheetModal
