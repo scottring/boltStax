@@ -13,7 +13,8 @@ import {
   HStack,
   Badge,
   Tooltip,
-  IconButton
+  IconButton,
+  Checkbox
 } from '@chakra-ui/react';
 import { Mail, ExternalLink } from 'lucide-react';
 import type { Supplier } from '../types/supplier';
@@ -22,6 +23,9 @@ interface SupplierTableProps {
   suppliers: Supplier[];
   onAction: (supplier: Supplier) => void;
   isLoading?: boolean;
+  selectedSuppliers: string[];
+  onSelectSupplier: (supplierId: string, isSelected: boolean) => void;
+  onSelectAll: (isSelected: boolean) => void;
 }
 
 const getStatusColor = (status: string) => {
@@ -58,13 +62,30 @@ const getStatusLabel = (status: string) => {
   }
 };
 
-export const SupplierTable = ({ suppliers, onAction, isLoading = false }: SupplierTableProps) => {
+export const SupplierTable = ({ 
+  suppliers, 
+  onAction, 
+  isLoading = false,
+  selectedSuppliers,
+  onSelectSupplier,
+  onSelectAll
+}: SupplierTableProps) => {
+  const allSelected = suppliers.length > 0 && suppliers.every(s => selectedSuppliers.includes(s.id));
+  const someSelected = suppliers.length > 0 && suppliers.some(s => selectedSuppliers.includes(s.id)) && !allSelected;
+
   return (
     <Box bg="white" borderRadius="lg" shadow="sm" overflow="hidden">
       <TableContainer>
         <Table variant="simple">
           <Thead bg="gray.50">
             <Tr>
+              <Th width="40px">
+                <Checkbox
+                  isChecked={allSelected}
+                  isIndeterminate={someSelected}
+                  onChange={(e) => onSelectAll(e.target.checked)}
+                />
+              </Th>
               <Th>Company Name</Th>
               <Th>Contact Name</Th>
               <Th>Email</Th>
@@ -78,6 +99,9 @@ export const SupplierTable = ({ suppliers, onAction, isLoading = false }: Suppli
             {isLoading ? (
               Array.from({ length: 3 }).map((_, index) => (
                 <Tr key={index}>
+                  <Td>
+                    <Skeleton height="20px" width="20px" />
+                  </Td>
                   {Array.from({ length: 7 }).map((_, cellIndex) => (
                     <Td key={cellIndex}>
                       <Skeleton height="20px" />
@@ -87,13 +111,19 @@ export const SupplierTable = ({ suppliers, onAction, isLoading = false }: Suppli
               ))
             ) : suppliers.length === 0 ? (
               <Tr>
-                <Td colSpan={7} textAlign="center" py={8}>
+                <Td colSpan={8} textAlign="center" py={8}>
                   <Text color="gray.500">No suppliers found</Text>
                 </Td>
               </Tr>
             ) : (
               suppliers.map((supplier) => (
                 <Tr key={supplier.id}>
+                  <Td>
+                    <Checkbox
+                      isChecked={selectedSuppliers.includes(supplier.id)}
+                      onChange={(e) => onSelectSupplier(supplier.id, e.target.checked)}
+                    />
+                  </Td>
                   <Td fontWeight="medium">{supplier.name}</Td>
                   <Td>{supplier.contactName}</Td>
                   <Td>

@@ -3,17 +3,21 @@ import {
   getDocs, 
   doc, 
   getDoc,
+  updateDoc,
   DocumentData,
   where,
   query,
   orderBy,
   limit,
-  Timestamp
+  Timestamp,
+  writeBatch,
+  deleteDoc
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import type { Supplier } from '../types/supplier';
 
 const COMPANIES_COLLECTION = 'companies';
+const SUPPLIER_ANSWERS_COLLECTION = 'supplierAnswers';
 
 export interface Company {
   id: string;
@@ -65,7 +69,6 @@ const convertToSupplier = (id: string, data: DocumentData): Supplier => ({
 export const searchCompaniesByName = async (searchTerm: string): Promise<Company[]> => {
   try {
     const companiesRef = collection(db, COMPANIES_COLLECTION);
-    // Create a query that searches for companies where name starts with the search term
     const searchTermLower = searchTerm.toLowerCase();
     
     const q = query(
@@ -108,10 +111,52 @@ export const getSupplier = async (companyId: string): Promise<Supplier> => {
   }
 };
 
-// For general company relationships (used in CustomersProductsView)
+export const updateSupplierStatus = async (supplierId: string, status: string): Promise<void> => {
+  try {
+    const docRef = doc(db, COMPANIES_COLLECTION, supplierId);
+    await updateDoc(docRef, {
+      status,
+      updatedAt: Timestamp.now()
+    });
+  } catch (error) {
+    console.error('Error updating supplier status:', error);
+    if (error instanceof Error) {
+      throw new Error(`Failed to update supplier status: ${error.message}`);
+    }
+    throw new Error('Failed to update supplier status');
+  }
+};
+
+export const saveSupplierAnswers = async (supplierId: string, answers: Record<string, string>): Promise<void> => {
+  try {
+    const batch = writeBatch(db);
+
+    // Save answers
+    const answersRef = doc(db, SUPPLIER_ANSWERS_COLLECTION, supplierId);
+    batch.set(answersRef, {
+      answers,
+      updatedAt: Timestamp.now()
+    });
+
+    // Update supplier status
+    const supplierRef = doc(db, COMPANIES_COLLECTION, supplierId);
+    batch.update(supplierRef, {
+      status: 'active',
+      updatedAt: Timestamp.now()
+    });
+
+    await batch.commit();
+  } catch (error) {
+    console.error('Error saving supplier answers:', error);
+    if (error instanceof Error) {
+      throw new Error(`Failed to save supplier answers: ${error.message}`);
+    }
+    throw new Error('Failed to save supplier answers');
+  }
+};
+
 export const getCompanySuppliers = async (companyId: string): Promise<Company[]> => {
   try {
-    // First get the company document to get the suppliers array
     const companyDoc = await getDoc(doc(db, COMPANIES_COLLECTION, companyId));
     
     if (!companyDoc.exists()) {
@@ -124,7 +169,6 @@ export const getCompanySuppliers = async (companyId: string): Promise<Company[]>
       return [];
     }
 
-    // Fetch all supplier companies
     const suppliersQuery = query(
       collection(db, COMPANIES_COLLECTION),
       where('__name__', 'in', supplierIds)
@@ -144,10 +188,8 @@ export const getCompanySuppliers = async (companyId: string): Promise<Company[]>
   }
 };
 
-// For supplier-specific functionality (used in SupplierProductsView)
 export const getSuppliers = async (companyId: string): Promise<Supplier[]> => {
   try {
-    // First get the company document to get the suppliers array
     const companyDoc = await getDoc(doc(db, COMPANIES_COLLECTION, companyId));
     
     if (!companyDoc.exists()) {
@@ -160,7 +202,6 @@ export const getSuppliers = async (companyId: string): Promise<Supplier[]> => {
       return [];
     }
 
-    // Fetch all supplier companies
     const suppliersQuery = query(
       collection(db, COMPANIES_COLLECTION),
       where('__name__', 'in', supplierIds)
@@ -177,5 +218,30 @@ export const getSuppliers = async (companyId: string): Promise<Supplier[]> => {
       throw new Error(`Failed to fetch suppliers: ${error.message}`);
     }
     throw new Error('Failed to fetch suppliers');
+  }
+};
+
+export const deleteSuppliers = async (supplierIds: string[]): Promise<{ count: number }> => {
+  try {
+    const batch = writeBatch(db);
+    
+    for (const supplierId of supplierIds) {
+      // Delete from companies collection
+      const companyRef = doc(db, COMPANIES_COLLECTION, supplierId);
+      batch.delete(companyRef);
+
+      // Delete their answers if they exist
+      const answersRef = doc(db, SUPPLIER_ANSWERS_COLLECTION, supplierId);
+      batch.delete(answersRef);
+    }
+
+    await batch.commit();
+    return { count: supplierIds.length };
+  } catch (error) {
+    console.error('Error deleting suppliers:', error);
+    if (error instanceof Error) {
+      throw new Error(`Failed to delete suppliers: ${error.message}`);
+    }
+    throw new Error('Failed to delete suppliers');
   }
 };

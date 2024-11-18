@@ -1,21 +1,15 @@
 import { onCall, HttpsOptions } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import * as sgMail from '@sendgrid/mail';
-import { defineSecret } from 'firebase-functions/params';
 
 admin.initializeApp();
-
-// Define secrets
-const sendgridKey = defineSecret('SENDGRID_KEY');
-const sendgridFromEmail = defineSecret('SENDGRID_FROM_EMAIL');
 
 // Function configuration
 const functionConfig: HttpsOptions = {
   memory: '256MiB',
   timeoutSeconds: 30,
   cors: true,
-  maxInstances: 10,
-  secrets: [sendgridKey, sendgridFromEmail]
+  maxInstances: 10
 };
 
 interface EmailData {
@@ -88,9 +82,9 @@ export const sendEmail = onCall<EmailData>(functionConfig, async (request) => {
   try {
     const data = request.data;
     
-    // Get SendGrid configuration from secrets
-    const key = sendgridKey.value();
-    const fromEmail = sendgridFromEmail.value();
+    // Get SendGrid configuration from environment variables
+    const key = process.env.SENDGRID_KEY;
+    const fromEmail = process.env.SENDGRID_FROM_EMAIL;
 
     // Validate SendGrid configuration
     if (!key || !fromEmail) {
@@ -130,7 +124,7 @@ export const sendEmail = onCall<EmailData>(functionConfig, async (request) => {
       to: data.to,
       from: {
         email: fromEmail,
-        name: 'StacksData'  // Changed from BoltStax to StacksData
+        name: 'StacksData'
       },
       subject: template.subject,
       html: template.html(data.data),

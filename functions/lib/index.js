@@ -4,25 +4,20 @@ exports.sendEmail = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const sgMail = require("@sendgrid/mail");
-const params_1 = require("firebase-functions/params");
 admin.initializeApp();
-// Define secrets
-const sendgridKey = (0, params_1.defineSecret)('SENDGRID_KEY');
-const sendgridFromEmail = (0, params_1.defineSecret)('SENDGRID_FROM_EMAIL');
 // Function configuration
 const functionConfig = {
     memory: '256MiB',
     timeoutSeconds: 30,
     cors: true,
-    maxInstances: 10,
-    secrets: [sendgridKey, sendgridFromEmail]
+    maxInstances: 10
 };
 const emailTemplates = {
     SUPPLIER_INVITATION: {
-        subject: 'Invitation to Join BoltStax',
+        subject: 'Invitation to Join StacksData',
         html: (data) => `
       <h2>Hello ${data.contactName},</h2>
-      <p>You have been invited to join BoltStax as a supplier for ${data.companyName}.</p>
+      <p>You have been invited to join StacksData as a supplier for ${data.companyName}.</p>
       <p>Click the link below to create your account and get started:</p>
       <a href="${data.accessUrl}" style="display:inline-block;background:#4CAF50;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;">
         Accept Invitation
@@ -70,9 +65,9 @@ const emailTemplates = {
 exports.sendEmail = (0, https_1.onCall)(functionConfig, async (request) => {
     try {
         const data = request.data;
-        // Get SendGrid configuration from secrets
-        const key = sendgridKey.value();
-        const fromEmail = sendgridFromEmail.value();
+        // Get SendGrid configuration from environment variables
+        const key = process.env.SENDGRID_KEY;
+        const fromEmail = process.env.SENDGRID_FROM_EMAIL;
         // Validate SendGrid configuration
         if (!key || !fromEmail) {
             console.error('Missing SendGrid configuration:', {
@@ -106,7 +101,7 @@ exports.sendEmail = (0, https_1.onCall)(functionConfig, async (request) => {
             to: data.to,
             from: {
                 email: fromEmail,
-                name: 'BoltStax'
+                name: 'StacksData'
             },
             subject: template.subject,
             html: template.html(data.data),

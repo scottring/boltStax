@@ -7,7 +7,12 @@ import { v4 as uuidv4 } from 'uuid';
 const COMPANIES_COLLECTION = 'companies';
 const INVITES_COLLECTION = 'invites';
 
-export const inviteSupplier = async (invite: SupplierInvite, companyId: string): Promise<void> => {
+interface InviteResult {
+  inviteCode: string;
+  supplierCompanyId: string;
+}
+
+export const inviteSupplier = async (invite: SupplierInvite, companyId: string): Promise<InviteResult> => {
   let inviteCode;
   let supplierCompanyId;
   
@@ -87,6 +92,8 @@ export const inviteSupplier = async (invite: SupplierInvite, companyId: string):
       await cleanupBatch.commit();
       throw emailError;
     }
+
+    return { inviteCode, supplierCompanyId };
   } catch (error) {
     // Clean up on any error
     if (inviteCode || supplierCompanyId) {
